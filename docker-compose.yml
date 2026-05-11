@@ -1,0 +1,19 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: leetdrill
+      POSTGRES_PASSWORD: leetdrill
+      POSTGRES_DB: leetdrill
+    ports:
+      - "5433:5432"
+    volumes:
+      - leetdrill_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U leetdrill"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  leetdrill_pg:

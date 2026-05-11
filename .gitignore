@@ -1,0 +1,12 @@
+.env
+.env.local
+bin/
+tmp/
+*.test
+*.out
+coverage.*
+.DS_Store
+web/static/app.css
+node_modules/
+.idea/
+.vscode/
