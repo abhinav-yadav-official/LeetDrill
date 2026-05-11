@@ -86,6 +86,62 @@ func TestRendererPagePrefixesInternalLinks(t *testing.T) {
 	}
 }
 
+func TestRendererPageIncludesExtensionLink(t *testing.T) {
+	r, err := NewRendererWithBasePath("/leetdrill")
+	if err != nil {
+		t.Fatalf("NewRendererWithBasePath() error = %v", err)
+	}
+
+	rec := httptest.NewRecorder()
+	r.Page(rec, "dashboard", PageData{
+		Title:   "Dashboard",
+		UserID:  7,
+		NavItem: "dashboard",
+		Data:    map[string]string{"Now": "ok"},
+	})
+
+	body := rec.Body.String()
+	for _, want := range []string{
+		`href="https://abhiy.xyz/shared/leetdrill-extension/"`,
+		`target="_blank"`,
+		`Extension`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("rendered dashboard missing extension link %q:\n%s", want, body)
+		}
+	}
+}
+
+func TestSettingsPageIncludesExtensionPanel(t *testing.T) {
+	r, err := NewRendererWithBasePath("/leetdrill")
+	if err != nil {
+		t.Fatalf("NewRendererWithBasePath() error = %v", err)
+	}
+
+	rec := httptest.NewRecorder()
+	r.Page(rec, "settings", PageData{
+		Title:   "Settings",
+		UserID:  7,
+		NavItem: "settings",
+		Data: map[string]string{
+			"Username":      "abhinav-yadav-official",
+			"CookieStatus":  "cookies stored and valid",
+			"CookieUpdatedAt": "",
+		},
+	})
+
+	body := rec.Body.String()
+	for _, want := range []string{
+		`Browser extension`,
+		`href="https://abhiy.xyz/shared/leetdrill-extension/"`,
+		`https://abhiy.xyz/leetdrill`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("rendered settings missing extension panel %q:\n%s", want, body)
+		}
+	}
+}
+
 func TestAppPath(t *testing.T) {
 	tests := []struct {
 		base string
