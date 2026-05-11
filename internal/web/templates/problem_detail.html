@@ -1,0 +1,43 @@
+{{define "content"}}
+<div class="flex flex-col gap-5">
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div>
+      <a href="/problems" class="text-sm text-zinc-500 hover:text-zinc-900">Problems</a>
+      <h1 class="mt-1 text-2xl font-semibold tracking-tight">{{.Data.Problem.Title}}</h1>
+      <div class="mt-2 flex flex-wrap gap-2">
+        <span class="rounded-full px-2 py-1 text-xs font-medium {{badgeClass .Data.Problem.Difficulty}}">{{.Data.Problem.Difficulty}}</span>
+        <span class="rounded-full px-2 py-1 text-xs font-medium {{statusBadge .Data.State.Status}}">{{.Data.State.Status}}</span>
+        {{range .Data.Problem.TopicTags}}<span class="rounded-full bg-zinc-100 px-2 py-1 text-xs text-zinc-700">{{.Name}}</span>{{end}}
+      </div>
+    </div>
+    <a class="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800" href="{{.Data.Problem.URL}}" target="_blank" rel="noreferrer">Open on LeetCode</a>
+  </div>
+
+  <div class="grid gap-4 sm:grid-cols-4">
+    <div class="rounded-lg border border-zinc-200 bg-white p-4"><div class="text-xs uppercase text-zinc-500">Attempts</div><div class="mt-2 text-2xl font-semibold">{{.Data.State.TotalAttempts}}</div></div>
+    <div class="rounded-lg border border-zinc-200 bg-white p-4"><div class="text-xs uppercase text-zinc-500">Fails</div><div class="mt-2 text-2xl font-semibold">{{.Data.State.TotalFails}}</div></div>
+    <div class="rounded-lg border border-zinc-200 bg-white p-4"><div class="text-xs uppercase text-zinc-500">Streak</div><div class="mt-2 text-2xl font-semibold">{{.Data.State.Streak}}</div></div>
+    <div class="rounded-lg border border-zinc-200 bg-white p-4"><div class="text-xs uppercase text-zinc-500">Next due</div><div class="mt-2 text-sm font-medium">{{fmtTime .Data.State.NextDueAt}}</div></div>
+  </div>
+
+  <section class="rounded-lg border border-zinc-200 bg-white">
+    <div class="border-b border-zinc-200 px-4 py-3">
+      <h2 class="font-medium">Attempt history</h2>
+    </div>
+    <div class="divide-y divide-zinc-100">
+      {{range .Data.Attempts}}
+        <div class="px-4 py-4">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="rounded-full px-2 py-1 text-xs font-medium {{verdictBadge .Verdict}}">{{.Verdict}}</span>
+            <span class="text-sm font-medium">{{.DerivedRating}}</span>
+            <span class="text-sm text-zinc-500">{{fmtTime .CompletedAt}}</span>
+          </div>
+          {{if .Journal}}<p class="mt-2 whitespace-pre-wrap text-sm text-zinc-700">{{.Journal}}</p>{{end}}
+        </div>
+      {{else}}
+        <div class="px-4 py-8 text-sm text-zinc-500">No attempts recorded.</div>
+      {{end}}
+    </div>
+  </section>
+</div>
+{{end}}

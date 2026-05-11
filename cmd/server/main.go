@@ -9,8 +9,10 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -22,7 +24,9 @@ import (
 	"leetdrill/internal/leetcode"
 	"leetdrill/internal/models"
 	"leetdrill/internal/store"
+	ldsync "leetdrill/internal/sync"
 	"leetdrill/internal/vault"
+	"leetdrill/internal/web"
 )
 
 const maxReqBody = 256 * 1024 // 256 KB; submissions can include code
@@ -32,7 +36,7 @@ type server struct {
 	store    *store.Store
 	vault    *vault.Vault
 	authmw   *auth.Authenticator
-	tplLogin string
+	renderer *web.Renderer
 }
 
 func main() {
@@ -56,6 +60,10 @@ func main() {
 	defer st.Close()
 
 	authmw := &auth.Authenticator{Store: st}
+	renderer, err := web.NewRenderer()
+	if err != nil {
+		log.Fatalf("templates: %v", err)
+	}
 
 	// Single-user self-host mode: ensure the row exists and pin to it.
 	if strings.EqualFold(os.Getenv("SINGLE_USER"), "true") {
@@ -68,10 +76,19 @@ func main() {
 	}
 
 	srv := &server{
-		addr:   addr,
-		store:  st,
-		vault:  v,
-		authmw: authmw,
+		addr:     addr,
+		store:    st,
+		vault:    v,
+		authmw:   authmw,
+		renderer: renderer,
+	}
+	if !strings.EqualFold(os.Getenv("LEETDRILL_SYNC_WORKER"), "false") {
+		(&ldsync.RecentWorker{
+			Store:    st,
+			Client:   leetcode.New(),
+			Interval: 30 * time.Minute,
+			Logger:   log.Default(),
+		}).Start(ctx)
 	}
 
 	httpSrv := &http.Server{
@@ -119,7 +136,16 @@ func (s *server) router() http.Handler {
 	r.Group(func(r chi.Router) {
 		r.Use(s.authmw.RequireWebSession)
 		r.Get("/", s.handleHome)
+		r.Post("/session/start", s.handleSessionStart)
+		r.Get("/session/today", s.handleSessionToday)
+		r.Get("/session/{id}/next", s.handleSessionNext)
+		r.Get("/problems", s.handleProblems)
+		r.Get("/problems/{slug}", s.handleProblemDetail)
+		r.Post("/problems/{id}/journal", s.handleProblemJournal)
+		r.Get("/patterns", s.handlePatterns)
+		r.Get("/stats", s.handleStats)
 		r.Get("/settings", s.handleSettings)
+		r.Post("/settings/cold-start", s.handleSettingsColdStart)
 	})
 
 	r.Route("/api/ext", func(r chi.Router) {
@@ -132,6 +158,7 @@ func (s *server) router() http.Handler {
 			r.Post("/cookies", s.handleExtCookies)
 			r.Post("/submission", s.handleExtSubmission)
 			r.Get("/next-problem", s.handleExtNextProblem)
+			r.Post("/cold-start", s.handleExtColdStart)
 		})
 	})
 
@@ -199,8 +226,289 @@ func (s *server) handleLogout(w http.ResponseWriter, r *http.Request) {
 
 func (s *server) handleHome(w http.ResponseWriter, r *http.Request) {
 	uid := auth.UserID(r.Context())
+	counts, err := store.CountsForDashboard(r.Context(), s.store.DB(), uid)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	recent, err := store.RecentAttempts(r.Context(), s.store.DB(), uid, 10)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	streak, err := store.CurrentStreakDays(r.Context(), s.store.DB(), uid)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	s.renderer.Page(w, "dashboard", web.PageData{
+		Title:   "Dashboard",
+		UserID:  uid,
+		NavItem: "dashboard",
+		Data: dashboardPageData{
+			Counts:         counts,
+			RecentAttempts: recent,
+			StreakDays:     streak,
+		},
+	})
+}
+
+type dashboardPageData struct {
+	Counts         store.DashboardCounts
+	RecentAttempts []store.RecentAttempt
+	StreakDays     int
+}
+
+func (s *server) handleSessionStart(w http.ResponseWriter, r *http.Request) {
+	uid := auth.UserID(r.Context())
+	if _, err := store.EnsureTodaySession(r.Context(), s.store.DB(), uid, 5); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/session/today", http.StatusSeeOther)
+}
+
+func (s *server) handleSessionToday(w http.ResponseWriter, r *http.Request) {
+	uid := auth.UserID(r.Context())
+	sess, err := store.EnsureTodaySession(r.Context(), s.store.DB(), uid, 5)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	card, err := s.sessionCard(r.Context(), uid, sess)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	s.renderer.Page(w, "session_today", web.PageData{
+		Title:   "Today",
+		UserID:  uid,
+		NavItem: "today",
+		Data:    sessionPageData{Card: card},
+	})
+}
+
+type sessionPageData struct {
+	Card sessionCardData
+}
+
+func (s *server) handleSessionNext(w http.ResponseWriter, r *http.Request) {
+	uid := auth.UserID(r.Context())
+	sessionID, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil || sessionID <= 0 {
+		http.Error(w, "bad session id", http.StatusBadRequest)
+		return
+	}
+	sess, err := store.GetSession(r.Context(), s.store.DB(), uid, sessionID)
+	if err != nil {
+		status := http.StatusInternalServerError
+		if errors.Is(err, store.ErrNotFound) {
+			status = http.StatusNotFound
+		}
+		http.Error(w, err.Error(), status)
+		return
+	}
+
+	// Check all uncompleted problems for new verdicts
+	completedMap := make(map[int64]bool)
+	for _, id := range sess.CompletedProblemIDs {
+		completedMap[id] = true
+	}
+
+	changed := false
+	for _, pid := range sess.ProblemIDs {
+		if completedMap[pid] {
+			continue
+		}
+		attempt, err := store.LatestAttemptSince(r.Context(), s.store.DB(), uid, pid, sess.StartedAt)
+		if err == nil && attempt.Found && attempt.Verdict == "AC" {
+			if _, err := store.MarkProblemCompleted(r.Context(), s.store.DB(), sess.ID, pid); err == nil {
+				changed = true
+			}
+		}
+	}
+
+	if changed {
+		sess, err = store.GetSession(r.Context(), s.store.DB(), uid, sessionID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	card, err := s.sessionCard(r.Context(), uid, sess)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	s.renderer.Partial(w, "session_card", card)
+}
+
+type sessionCardData struct {
+	Session        *store.Session
+	Problems       []sessionProblem
+	Done           bool
+	CompletedCount int
+	TotalCount     int
+}
+
+type sessionProblem struct {
+	ProblemID  int64
+	Slug       string
+	Title      string
+	Difficulty models.Difficulty
+	URL        string
+	Topics     []models.Tag
+	Status     models.Status
+	Completed  bool
+	Journal    string
+}
+
+func (s *server) sessionCard(ctx context.Context, uid int64, sess *store.Session) (sessionCardData, error) {
+	card := sessionCardData{
+		Session:        sess,
+		CompletedCount: len(sess.CompletedProblemIDs),
+		TotalCount:     len(sess.ProblemIDs),
+	}
+
+	completedMap := make(map[int64]bool)
+	for _, id := range sess.CompletedProblemIDs {
+		completedMap[id] = true
+	}
+
+	for _, pid := range sess.ProblemIDs {
+		p, err := store.GetProblemByID(ctx, s.store.DB(), pid)
+		if err != nil {
+			return card, err
+		}
+		up, err := store.GetUserProblem(ctx, s.store.DB(), uid, pid)
+		if err != nil {
+			return card, err
+		}
+
+		journal := ""
+		detail, err := store.GetProblemDetail(ctx, s.store.DB(), uid, p.LeetcodeSlug, 1)
+		if err == nil && len(detail.Attempts) > 0 {
+			journal = detail.Attempts[0].Journal
+		}
+
+		card.Problems = append(card.Problems, sessionProblem{
+			ProblemID:  p.ID,
+			Slug:       p.LeetcodeSlug,
+			Title:      p.Title,
+			Difficulty: p.Difficulty,
+			URL:        p.URL,
+			Topics:     p.TopicTags,
+			Status:     up.Status,
+			Completed:  completedMap[pid],
+			Journal:    journal,
+		})
+	}
+
+	card.Done = card.TotalCount > 0 && card.CompletedCount == card.TotalCount
+	return card, nil
+}
+
+func (s *server) handleProblems(w http.ResponseWriter, r *http.Request) {
+	uid := auth.UserID(r.Context())
+	filter := r.URL.Query().Get("filter")
+	items, err := store.ListProblemsForUser(r.Context(), s.store.DB(), uid, filter, 100, 0)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	s.renderer.Page(w, "problems", web.PageData{
+		Title:   "Problems",
+		UserID:  uid,
+		NavItem: "problems",
+		Data:    problemsPageData{Filter: filter, Problems: items},
+	})
+}
+
+type problemsPageData struct {
+	Filter   string
+	Problems []store.ProblemListItem
+}
+
+func (s *server) handleProblemDetail(w http.ResponseWriter, r *http.Request) {
+	uid := auth.UserID(r.Context())
+	detail, err := store.GetProblemDetail(r.Context(), s.store.DB(), uid, chi.URLParam(r, "slug"), 25)
+	if err != nil {
+		status := http.StatusInternalServerError
+		if errors.Is(err, store.ErrNotFound) {
+			status = http.StatusNotFound
+		}
+		http.Error(w, err.Error(), status)
+		return
+	}
+	s.renderer.Page(w, "problem_detail", web.PageData{
+		Title:   detail.Problem.Title,
+		UserID:  uid,
+		NavItem: "problems",
+		Data:    detail,
+	})
+}
+
+func (s *server) handleProblemJournal(w http.ResponseWriter, r *http.Request) {
+	uid := auth.UserID(r.Context())
+	problemID, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil || problemID <= 0 {
+		http.Error(w, "bad problem id", http.StatusBadRequest)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad form", http.StatusBadRequest)
+		return
+	}
+	err = store.UpdateLatestAttemptJournal(r.Context(), s.store.DB(), uid, problemID, r.FormValue("journal"))
+	if errors.Is(err, store.ErrNotFound) {
+		http.Error(w, "no attempt to annotate yet", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, _ = fmt.Fprintf(w, `<!doctype html><html><body style="font-family:system-ui"><h1>leetdrill</h1><p>logged in as user_id=%d</p><p>phase 4 wires real dashboard.</p><form method="post" action="/logout"><button>log out</button></form></body></html>`, uid)
+	_, _ = w.Write([]byte("saved"))
+}
+
+func (s *server) handlePatterns(w http.ResponseWriter, r *http.Request) {
+	uid := auth.UserID(r.Context())
+	patterns, err := store.ListPatternsWithStrength(r.Context(), s.store.DB(), uid)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	s.renderer.Page(w, "patterns", web.PageData{
+		Title:   "Patterns",
+		UserID:  uid,
+		NavItem: "patterns",
+		Data:    patternsPageData{Patterns: patterns},
+	})
+}
+
+type patternsPageData struct {
+	Patterns []store.PatternStrength
+}
+
+func (s *server) handleStats(w http.ResponseWriter, r *http.Request) {
+	uid := auth.UserID(r.Context())
+	recent, err := store.RecentAttempts(r.Context(), s.store.DB(), uid, 100)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	s.renderer.Page(w, "stats", web.PageData{
+		Title:   "Stats",
+		UserID:  uid,
+		NavItem: "stats",
+		Data:    statsPageData{RecentAttempts: recent},
+	})
+}
+
+type statsPageData struct {
+	RecentAttempts []store.RecentAttempt
 }
 
 func (s *server) handleSettings(w http.ResponseWriter, r *http.Request) {
@@ -215,11 +523,60 @@ func (s *server) handleSettings(w http.ResponseWriter, r *http.Request) {
 		if c.Valid {
 			status = "cookies stored and valid"
 		} else {
-			status = "cookies stored but marked invalid — re-sync via extension"
+			status = "cookies stored but marked invalid; re-sync via extension"
 		}
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, _ = fmt.Fprintf(w, `<!doctype html><html><body style="font-family:system-ui"><h1>settings</h1><p>user_id=%d, leetcode_username=%q</p><p>%s</p></body></html>`, uid, c.Username, status)
+	s.renderer.Page(w, "settings", web.PageData{
+		Title:   "Settings",
+		UserID:  uid,
+		NavItem: "settings",
+		Data: settingsPageData{
+			Username:     emptyDash(c.Username),
+			CookieStatus: status,
+			Message:      r.URL.Query().Get("message"),
+		},
+	})
+}
+
+type settingsPageData struct {
+	Username        string
+	CookieStatus    string
+	CookieUpdatedAt *time.Time
+	Message         string
+}
+
+func (s *server) handleSettingsColdStart(w http.ResponseWriter, r *http.Request) {
+	uid := auth.UserID(r.Context())
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad form", http.StatusBadRequest)
+		return
+	}
+	result, err := s.runColdStart(r.Context(), uid, r.FormValue("username"))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	msg := fmt.Sprintf("imported recent=%d authed=%d duplicates=%d unknown=%d",
+		result.RecentImported, result.AuthedImported, result.DuplicatesSkipped, result.UnknownSkipped)
+	http.Redirect(w, r, "/settings?message="+url.QueryEscape(msg), http.StatusSeeOther)
+}
+
+func (s *server) runColdStart(ctx context.Context, userID int64, username string) (ldsync.ColdStartResult, error) {
+	importer := &ldsync.ColdStartImporter{
+		Store:              s.store,
+		Vault:              s.vault,
+		Client:             leetcode.New(),
+		MaxSubmissionPages: 20,
+		SubmissionPageSize: 50,
+	}
+	return importer.Run(ctx, userID, username)
+}
+
+func emptyDash(v string) string {
+	if strings.TrimSpace(v) == "" {
+		return "-"
+	}
+	return v
 }
 
 // ---- Extension API ----
@@ -317,17 +674,17 @@ func (s *server) handleExtCookies(w http.ResponseWriter, r *http.Request) {
 }
 
 type submissionReq struct {
-	Slug             string `json:"slug"`
-	Verdict          string `json:"verdict"`          // human form: "Accepted", "Wrong Answer", ...
-	SubmissionCount  int    `json:"submission_count"` // submissions in this session up to and including this one
-	TimeTakenSec     int    `json:"time_taken_sec"`   // wall-clock since page-open
-	RuntimeMs        *int   `json:"runtime_ms,omitempty"`
-	MemoryKB         *int   `json:"memory_kb,omitempty"`
-	Language         string `json:"language,omitempty"`
-	Code             string `json:"code,omitempty"`
-	LeetcodeSubmID   string `json:"leetcode_submission_id,omitempty"`
-	StartedAtUnix    int64  `json:"started_at_unix,omitempty"`
-	CompletedAtUnix  int64  `json:"completed_at_unix,omitempty"`
+	Slug            string `json:"slug"`
+	Verdict         string `json:"verdict"`          // human form: "Accepted", "Wrong Answer", ...
+	SubmissionCount int    `json:"submission_count"` // submissions in this session up to and including this one
+	TimeTakenSec    int    `json:"time_taken_sec"`   // wall-clock since page-open
+	RuntimeMs       *int   `json:"runtime_ms,omitempty"`
+	MemoryKB        *int   `json:"memory_kb,omitempty"`
+	Language        string `json:"language,omitempty"`
+	Code            string `json:"code,omitempty"`
+	LeetcodeSubmID  string `json:"leetcode_submission_id,omitempty"`
+	StartedAtUnix   int64  `json:"started_at_unix,omitempty"`
+	CompletedAtUnix int64  `json:"completed_at_unix,omitempty"`
 }
 
 type submissionResp struct {
@@ -401,11 +758,11 @@ func (s *server) handleExtSubmission(w http.ResponseWriter, r *http.Request) {
 }
 
 type nextProblemResp struct {
-	Slug       string             `json:"slug"`
-	URL        string             `json:"url"`
-	Title      string             `json:"title"`
-	Difficulty models.Difficulty  `json:"difficulty"`
-	Reason     string             `json:"reason"`
+	Slug       string            `json:"slug"`
+	URL        string            `json:"url"`
+	Title      string            `json:"title"`
+	Difficulty models.Difficulty `json:"difficulty"`
+	Reason     string            `json:"reason"`
 }
 
 func (s *server) handleExtNextProblem(w http.ResponseWriter, r *http.Request) {
@@ -426,6 +783,32 @@ func (s *server) handleExtNextProblem(w http.ResponseWriter, r *http.Request) {
 		Difficulty: np.Difficulty,
 		Reason:     np.Reason,
 	})
+}
+
+type coldStartReq struct {
+	Username string `json:"username"`
+}
+
+func (s *server) handleExtColdStart(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+	body, err := io.ReadAll(io.LimitReader(r.Body, maxReqBody))
+	if err != nil {
+		http.Error(w, "read body", http.StatusBadRequest)
+		return
+	}
+	var req coldStartReq
+	if len(strings.TrimSpace(string(body))) > 0 {
+		if err := json.Unmarshal(body, &req); err != nil {
+			http.Error(w, "expected {username}", http.StatusBadRequest)
+			return
+		}
+	}
+	result, err := s.runColdStart(r.Context(), auth.UserID(r.Context()), req.Username)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
 }
 
 func unixOrZero(v int64) time.Time {

@@ -3,8 +3,10 @@ version: "3"
 dotenv: [".env"]
 
 vars:
-  PG_DSN: "postgres://leetdrill:leetdrill@localhost:5433/leetdrill?sslmode=disable"
+  PG_DSN:
+    sh: 'printf "%s" "${DATABASE_URL:-postgres://leetdrill:leetdrill@localhost:5433/leetdrill?sslmode=disable}"'
   MIG_DIR: "./migrations"
+  GOOSE: "go run github.com/pressly/goose/v3/cmd/goose@latest"
 
 tasks:
   default:
@@ -61,21 +63,21 @@ tasks:
   migrate:up:
     desc: "Apply pending migrations."
     cmds:
-      - goose -dir {{.MIG_DIR}} postgres "{{.PG_DSN}}" up
+      - "{{.GOOSE}} -dir {{.MIG_DIR}} postgres \"{{.PG_DSN}}\" up"
 
   migrate:down:
     desc: "Roll back one migration."
     cmds:
-      - goose -dir {{.MIG_DIR}} postgres "{{.PG_DSN}}" down
+      - "{{.GOOSE}} -dir {{.MIG_DIR}} postgres \"{{.PG_DSN}}\" down"
 
   migrate:status:
     cmds:
-      - goose -dir {{.MIG_DIR}} postgres "{{.PG_DSN}}" status
+      - "{{.GOOSE}} -dir {{.MIG_DIR}} postgres \"{{.PG_DSN}}\" status"
 
   migrate:new:
     desc: "Create a new migration: task migrate:new -- name"
     cmds:
-      - goose -dir {{.MIG_DIR}} create {{.CLI_ARGS}} sql
+      - "{{.GOOSE}} -dir {{.MIG_DIR}} create {{.CLI_ARGS}} sql"
 
   ingest:
     desc: "Run LeetCode catalog ingest (phase 0: log only)."

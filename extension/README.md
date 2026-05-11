@@ -6,6 +6,7 @@ Chrome MV3 extension. Two flows:
    the `/submissions/detail/<id>/check/` polling endpoint.
 2. Syncs `LEETCODE_SESSION` + `csrftoken` cookies to the backend every 6h so
    the backend can run authed GraphQL queries (sync worker).
+3. Triggers a cold-start history import for the connected backend user.
 
 ## Load locally
 
@@ -17,6 +18,8 @@ Chrome MV3 extension. Two flows:
    - Multi-user backend: fill both.
 4. Open a LeetCode problem and submit. Console should log
    `[leetdrill] submission applied`.
+5. Click **import history** in the popup after cookies sync to backfill old
+   accepted submissions for this LeetDrill user.
 
 ## Files
 
@@ -31,5 +34,5 @@ Chrome MV3 extension. Two flows:
 
 ## Icons
 
-Not included. Drop `icon16.png`, `icon48.png`, `icon128.png` into this
-directory before publishing; loaded-unpacked works without them.
+Not included. Add an `icons` block to `manifest.json` when `icon16.png`,
+`icon48.png`, and `icon128.png` exist.

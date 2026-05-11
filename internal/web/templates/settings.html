@@ -1,0 +1,26 @@
+{{define "content"}}
+<div class="max-w-2xl">
+  <h1 class="text-2xl font-semibold tracking-tight">Settings</h1>
+  {{if .Data.Message}}
+    <div class="mt-5 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">{{.Data.Message}}</div>
+  {{end}}
+  <div class="mt-5 rounded-lg border border-zinc-200 bg-white p-4">
+    <h2 class="font-medium">LeetCode connection</h2>
+    <dl class="mt-4 space-y-3 text-sm">
+      <div class="flex justify-between gap-4"><dt class="text-zinc-500">Username</dt><dd class="font-medium">{{.Data.Username}}</dd></div>
+      <div class="flex justify-between gap-4"><dt class="text-zinc-500">Cookie status</dt><dd class="font-medium">{{.Data.CookieStatus}}</dd></div>
+      <div class="flex justify-between gap-4"><dt class="text-zinc-500">Updated</dt><dd class="font-medium">{{fmtTime .Data.CookieUpdatedAt}}</dd></div>
+    </dl>
+  </div>
+  <form class="mt-5 rounded-lg border border-zinc-200 bg-white p-4" method="post" action="/settings/cold-start">
+    <h2 class="font-medium">Import LeetCode history</h2>
+    <p class="mt-1 text-sm text-zinc-600">Uses public recent ACs and synced cookies when available.</p>
+    <label class="mt-4 block text-sm font-medium text-zinc-700" for="username">LeetCode username</label>
+    <input id="username" name="username" class="mt-2 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm" placeholder="optional if already saved" value="{{if ne .Data.Username "-"}}{{.Data.Username}}{{end}}">
+    <button class="mt-3 rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white">Import history</button>
+  </form>
+  <form class="mt-5" method="post" action="/logout">
+    <button class="rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium hover:bg-zinc-50">Log out</button>
+  </form>
+</div>
+{{end}}

@@ -167,6 +167,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           sendResponse({ ok: true, data });
           break;
         }
+        case "LEETDRILL_COLD_START": {
+          const data = await apiPost("/api/ext/cold-start", msg.payload || {});
+          sendResponse({ ok: true, data });
+          break;
+        }
         case "LEETDRILL_GET_CONFIG": {
           sendResponse({ ok: true, data: await getConfig() });
           break;

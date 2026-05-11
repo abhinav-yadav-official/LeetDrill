@@ -106,3 +106,31 @@ FROM problems WHERE leetcode_slug = $1`
 	}
 	return &p, nil
 }
+
+// GetProblemByID returns a problem row by internal id.
+func GetProblemByID(ctx context.Context, db DBTX, id int64) (*models.Problem, error) {
+	const q = `
+SELECT id, leetcode_slug, COALESCE(leetcode_question_id,''), COALESCE(leetcode_frontend_id,''),
+       title, difficulty, url, COALESCE(content_html,''), topic_tags,
+       COALESCE(ac_rate, 0), paid_only, synced_at
+FROM problems WHERE id = $1`
+	var p models.Problem
+	var tagsBytes []byte
+	var diff string
+	err := db.QueryRow(ctx, q, id).Scan(
+		&p.ID, &p.LeetcodeSlug, &p.LeetcodeQuestionID, &p.LeetcodeFrontendID,
+		&p.Title, &diff, &p.URL, &p.ContentHTML, &tagsBytes,
+		&p.ACRate, &p.PaidOnly, &p.SyncedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get problem %d: %w", id, err)
+	}
+	p.Difficulty = models.Difficulty(diff)
+	if len(tagsBytes) > 0 {
+		_ = json.Unmarshal(tagsBytes, &p.TopicTags)
+	}
+	return &p, nil
+}

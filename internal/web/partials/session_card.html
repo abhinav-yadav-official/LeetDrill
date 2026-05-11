@@ -1,0 +1,52 @@
+{{define "session_card"}}
+<div class="flex flex-col gap-6"
+     hx-get="/session/{{.Session.ID}}/next"
+     hx-trigger="every 5s"
+     hx-target="#session-card"
+     hx-swap="innerHTML">
+
+  {{if .Done}}
+    <div class="rounded-lg border border-emerald-200 bg-emerald-50 p-6">
+      <h2 class="text-lg font-semibold text-emerald-950">Session complete</h2>
+      <p class="mt-1 text-sm text-emerald-800">{{.CompletedCount}} of {{.TotalCount}} problems completed.</p>
+    </div>
+  {{end}}
+
+  <div class="grid gap-4">
+    {{range .Problems}}
+    <section class="rounded-lg border border-zinc-200 bg-white p-5 {{if .Completed}}opacity-60 bg-zinc-50{{end}}">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <div class="flex items-center gap-2">
+            {{if .Completed}}
+            <span class="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-[10px] text-white">✓</span>
+            {{end}}
+            <h2 class="text-xl font-semibold tracking-tight">{{.Title}}</h2>
+          </div>
+          <div class="mt-2 flex flex-wrap gap-2">
+            <span class="rounded-full px-2 py-1 text-xs font-medium {{badgeClass .Difficulty}}">{{.Difficulty}}</span>
+            <span class="rounded-full px-2 py-1 text-xs font-medium {{statusBadge .Status}}">{{.Status}}</span>
+            {{range .Topics}}<span class="rounded-full bg-zinc-100 px-2 py-1 text-xs text-zinc-700">{{.Name}}</span>{{end}}
+          </div>
+        </div>
+        <a class="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800" href="{{.URL}}" target="_blank" rel="noreferrer">Open on LeetCode</a>
+      </div>
+      
+      <form class="mt-5" hx-post="/problems/{{.ProblemID}}/journal" hx-target="#journal-status-{{.ProblemID}}" hx-swap="innerHTML">
+        <label class="block text-sm font-medium text-zinc-700" for="journal-{{.ProblemID}}">Journal</label>
+        <textarea id="journal-{{.ProblemID}}" name="journal" class="mt-2 min-h-24 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm" placeholder="Mistake, pattern, or note after solving.">{{.Journal}}</textarea>
+        <div class="mt-2 flex items-center gap-3">
+          <button class="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium hover:bg-zinc-50">Save note</button>
+          <span id="journal-status-{{.ProblemID}}" class="text-sm text-zinc-500"></span>
+        </div>
+      </form>
+    </section>
+    {{else}}
+    <div class="rounded-lg border border-zinc-200 bg-white p-6">
+      <h2 class="text-lg font-semibold">No problems available</h2>
+      <p class="mt-1 text-sm text-zinc-600">Run catalog ingest, then start a session again.</p>
+    </div>
+    {{end}}
+  </div>
+</div>
+{{end}}

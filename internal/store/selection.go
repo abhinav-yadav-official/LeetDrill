@@ -58,7 +58,7 @@ LEFT JOIN user_problems up
 WHERE up.user_id IS NULL
   AND p.paid_only = FALSE
   AND p.difficulty = 'Medium'
-ORDER BY p.ac_rate ASC NULLS LAST
+ORDER BY p.ac_rate DESC NULLS LAST
 LIMIT 1`
 	err = db.QueryRow(ctx, newQ, userID).Scan(&np.Slug, &np.URL, &np.Title, &diff)
 	if errors.Is(err, pgx.ErrNoRows) {

@@ -39,3 +39,30 @@ RETURNING id`
 	}
 	return id, nil
 }
+
+type SyncUser struct {
+	ID               int64
+	LeetcodeUsername string
+}
+
+func ListUsersForRecentSync(ctx context.Context, db DBTX) ([]SyncUser, error) {
+	const q = `
+SELECT id, leetcode_username
+FROM users
+WHERE COALESCE(leetcode_username, '') <> ''
+ORDER BY id`
+	rows, err := db.Query(ctx, q)
+	if err != nil {
+		return nil, fmt.Errorf("list users for recent sync: %w", err)
+	}
+	defer rows.Close()
+	var out []SyncUser
+	for rows.Next() {
+		var u SyncUser
+		if err := rows.Scan(&u.ID, &u.LeetcodeUsername); err != nil {
+			return nil, err
+		}
+		out = append(out, u)
+	}
+	return out, rows.Err()
+}

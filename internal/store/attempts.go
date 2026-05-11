@@ -3,10 +3,15 @@ package store
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+
+	"github.com/jackc/pgx/v5"
 
 	"leetdrill/internal/models"
 )
+
+var ErrDuplicateAttempt = errors.New("store: duplicate attempt")
 
 // InsertAttempt writes a row to attempts. Caller may set LeetcodeSubmissionID
 // to enable extension/sync dedup via the partial unique index.
@@ -39,7 +44,17 @@ RETURNING id`
 		a.DerivedRating, a.Journal, tags, a.LeetcodeSubmissionID,
 	)
 	if err := row.Scan(&id); err != nil {
+		if scanErr := classifyInsertAttemptScanErr(err); scanErr != nil {
+			return 0, scanErr
+		}
 		return 0, fmt.Errorf("insert attempt: %w", err)
 	}
 	return id, nil
+}
+
+func classifyInsertAttemptScanErr(err error) error {
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrDuplicateAttempt
+	}
+	return nil
 }

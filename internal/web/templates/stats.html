@@ -1,0 +1,26 @@
+{{define "content"}}
+<div class="flex flex-col gap-4">
+  <div>
+    <h1 class="text-2xl font-semibold tracking-tight">Stats</h1>
+    <p class="mt-1 text-sm text-zinc-600">Submission history from captured attempts.</p>
+  </div>
+  <section class="rounded-lg border border-zinc-200 bg-white">
+    <div class="border-b border-zinc-200 px-4 py-3">
+      <h2 class="font-medium">Recent attempts</h2>
+    </div>
+    <div class="divide-y divide-zinc-100">
+      {{range .Data.RecentAttempts}}
+        <a class="flex items-center justify-between gap-3 px-4 py-3 hover:bg-zinc-50" href="/problems/{{.Slug}}">
+          <div class="min-w-0">
+            <div class="truncate font-medium">{{.Title}}</div>
+            <div class="text-xs text-zinc-500">{{fmtTime .CompletedAt}} · {{.Difficulty}}</div>
+          </div>
+          <span class="rounded-full px-2 py-1 text-xs font-medium {{verdictBadge .Verdict}}">{{.Verdict}}</span>
+        </a>
+      {{else}}
+        <div class="px-4 py-8 text-sm text-zinc-500">No attempts yet.</div>
+      {{end}}
+    </div>
+  </section>
+</div>
+{{end}}

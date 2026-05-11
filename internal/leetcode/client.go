@@ -198,6 +198,48 @@ func (c *Client) ListProblems(ctx context.Context, skip, limit int) ([]ProblemLi
 	return resp.ProblemsetQuestionList.Questions, resp.ProblemsetQuestionList.Total, nil
 }
 
+const querySolvedProblemList = `
+query solvedProblemsetQuestionList($limit: Int, $skip: Int) {
+  problemsetQuestionList: questionList(
+    categorySlug: ""
+    limit: $limit
+    skip: $skip
+    filters: { status: AC }
+  ) {
+    total: totalNum
+    questions: data {
+      questionId
+      questionFrontendId
+      title
+      titleSlug
+      difficulty
+      isPaidOnly
+      acRate
+      topicTags { name slug }
+    }
+  }
+}`
+
+func (c *Client) ListSolvedProblems(ctx context.Context, creds Credentials, skip, limit int) ([]ProblemListItem, int, error) {
+	if creds.Session == "" {
+		return nil, 0, errors.New("solved problem list requires authed credentials")
+	}
+	var resp struct {
+		ProblemsetQuestionList struct {
+			Total     int               `json:"total"`
+			Questions []ProblemListItem `json:"questions"`
+		} `json:"problemsetQuestionList"`
+	}
+	vars := map[string]any{
+		"skip":  skip,
+		"limit": limit,
+	}
+	if err := c.do(ctx, querySolvedProblemList, vars, &creds, &resp); err != nil {
+		return nil, 0, err
+	}
+	return resp.ProblemsetQuestionList.Questions, resp.ProblemsetQuestionList.Total, nil
+}
+
 // =============================================================================
 // Query 2: question — full problem details
 //
@@ -289,8 +331,8 @@ query getUserProfile($username: String!) {
 }`
 
 type MatchedUser struct {
-	Username    string `json:"username"`
-	Profile     struct {
+	Username string `json:"username"`
+	Profile  struct {
 		Reputation int `json:"reputation"`
 		Ranking    int `json:"ranking"`
 	} `json:"profile"`
@@ -402,7 +444,6 @@ query submissionList(
       url
       isPending
       memory
-      submissionComment { comment flagType }
     }
   }
 }`

@@ -55,6 +55,21 @@ $("sync").addEventListener("click", async () => {
   setTimeout(() => { $("sync").textContent = "sync cookies"; }, 1500);
 });
 
+$("import").addEventListener("click", async () => {
+  $("import").disabled = true;
+  $("import").textContent = "importing…";
+  const res = await send("LEETDRILL_COLD_START", {});
+  $("import").disabled = false;
+  if (res.ok) {
+    const d = res.data || {};
+    $("import").textContent = `imported ${((d.recent_imported || 0) + (d.authed_imported || 0))}`;
+    refresh();
+  } else {
+    $("import").textContent = "import failed";
+  }
+  setTimeout(() => { $("import").textContent = "import history"; }, 2500);
+});
+
 $("options").addEventListener("click", () => {
   chrome.runtime.openOptionsPage();
 });

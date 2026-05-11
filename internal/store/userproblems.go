@@ -76,6 +76,28 @@ ON CONFLICT (user_id, problem_id) DO UPDATE SET
 	return nil
 }
 
+// InsertSolvedUserProblemIfMissing seeds historical solved problems when
+// LeetCode gives us solved slugs but not submission timestamps. Existing SRS
+// rows are never overwritten.
+func InsertSolvedUserProblemIfMissing(ctx context.Context, db DBTX, up models.UserProblem) (bool, error) {
+	const q = `
+INSERT INTO user_problems (
+    user_id, problem_id, ease_factor, interval_days,
+    next_due_at, last_attempted_at,
+    total_attempts, clean_solves, total_fails, streak, status
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+ON CONFLICT (user_id, problem_id) DO NOTHING`
+	tag, err := db.Exec(ctx, q,
+		up.UserID, up.ProblemID, up.EaseFactor, up.IntervalDays,
+		up.NextDueAt, up.LastAttemptedAt,
+		up.TotalAttempts, up.CleanSolves, up.TotalFails, up.Streak, string(up.Status),
+	)
+	if err != nil {
+		return false, fmt.Errorf("insert solved user_problem (%d,%d): %w", up.UserID, up.ProblemID, err)
+	}
+	return tag.RowsAffected() > 0, nil
+}
+
 // timeOrNil returns nil for zero-time so we write SQL NULL.
 func timeOrNil(t time.Time) *time.Time {
 	if t.IsZero() {
