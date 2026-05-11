@@ -3,7 +3,7 @@
   {{if .Data.VacationUntil}}
     <div class="rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
       <span class="font-bold">Vacation Mode Active.</span> Due reviews are paused until {{fmtTime .Data.VacationUntil}}.
-      <a href="/settings" class="ml-2 font-medium underline">Disable in Settings</a>
+      <a href="{{appPath "/settings"}}" class="ml-2 font-medium underline">Disable in Settings</a>
     </div>
   {{end}}
 
@@ -12,7 +12,7 @@
       <h1 class="text-2xl font-semibold tracking-tight">Dashboard</h1>
       <p class="mt-1 text-sm text-zinc-600">Daily review queue and recent submission signal.</p>
     </div>
-    <form method="post" action="/session/start">
+    <form method="post" action="{{appPath "/session/start"}}">
       <button class="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800">Start today</button>
     </form>
   </div>
@@ -43,7 +43,7 @@
       </div>
       <div class="divide-y divide-zinc-100">
         {{range .Data.RecentAttempts}}
-          <a class="flex items-center justify-between gap-3 px-4 py-3 hover:bg-zinc-50" href="/problems/{{.Slug}}">
+          <a class="flex items-center justify-between gap-3 px-4 py-3 hover:bg-zinc-50" href="{{appPath "/problems"}}/{{.Slug}}">
             <div class="min-w-0">
               <div class="truncate font-medium">{{.Title}}</div>
               <div class="mt-1 text-xs text-zinc-500">{{fmtRelTime .CompletedAt}} · {{.DerivedRating}}</div>

@@ -37,10 +37,12 @@ type server struct {
 	vault    *vault.Vault
 	authmw   *auth.Authenticator
 	renderer *web.Renderer
+	basePath string
 }
 
 func main() {
 	addr := envOr("LEETDRILL_ADDR", ":8080")
+	basePath := web.CleanBasePath(os.Getenv("LEETDRILL_BASE_PATH"))
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
 		log.Fatal("DATABASE_URL not set")
@@ -59,8 +61,12 @@ func main() {
 	}
 	defer st.Close()
 
-	authmw := &auth.Authenticator{Store: st}
-	renderer, err := web.NewRenderer()
+	authmw := &auth.Authenticator{
+		Store:         st,
+		BasePath:      basePath,
+		SecureCookies: strings.EqualFold(os.Getenv("LEETDRILL_SECURE_COOKIES"), "true"),
+	}
+	renderer, err := web.NewRendererWithBasePath(basePath)
 	if err != nil {
 		log.Fatalf("templates: %v", err)
 	}
@@ -81,6 +87,7 @@ func main() {
 		vault:    v,
 		authmw:   authmw,
 		renderer: renderer,
+		basePath: basePath,
 	}
 	if !strings.EqualFold(os.Getenv("LEETDRILL_SYNC_WORKER"), "false") {
 		(&ldsync.RecentWorker{
@@ -167,23 +174,71 @@ func (s *server) router() http.Handler {
 	return r
 }
 
+func (s *server) page(w http.ResponseWriter, name string, p web.PageData) {
+	p.BasePath = s.basePath
+	s.renderer.Page(w, name, p)
+}
+
+func (s *server) appPath(target string) string {
+	return web.AppPath(s.basePath, target)
+}
+
 // ---- HTML ----
 
 const loginPage = `<!doctype html>
-<html><head><meta charset="utf-8"><title>leetdrill — login</title></head>
-<body style="font-family: system-ui; max-width: 480px; margin: 4rem auto;">
-<h1>leetdrill</h1>
-<p>%s</p>
-<form method="post" action="/login">
-  <p><label>Email <input type="email" name="email" autofocus required></label></p>
-  <p><label>Password <input type="password" name="password" required></label></p>
-  <p><button type="submit">log in</button></p>
-</form>
-</body></html>`
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Login · LeetDrill</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="min-h-screen bg-zinc-50 text-zinc-950">
+    <main class="mx-auto grid min-h-screen max-w-6xl items-center gap-10 px-4 py-10 sm:px-6 lg:grid-cols-[1fr_420px] lg:px-8">
+      <section class="max-w-xl">
+        <div class="text-sm font-semibold uppercase tracking-normal text-zinc-500">LeetDrill</div>
+        <h1 class="mt-3 text-3xl font-semibold tracking-normal text-zinc-950 sm:text-4xl">Daily review flow for LeetCode practice.</h1>
+        <p class="mt-4 max-w-lg text-base leading-7 text-zinc-600">Track recent submissions, spaced repetition, and difficult problems from one focused workspace.</p>
+        <div class="mt-8 grid max-w-md grid-cols-3 gap-3 text-sm">
+          <div class="rounded-lg border border-zinc-200 bg-white p-3">
+            <div class="text-xs font-medium uppercase tracking-normal text-zinc-500">Queue</div>
+            <div class="mt-2 font-semibold text-zinc-900">Due first</div>
+          </div>
+          <div class="rounded-lg border border-zinc-200 bg-white p-3">
+            <div class="text-xs font-medium uppercase tracking-normal text-zinc-500">Signal</div>
+            <div class="mt-2 font-semibold text-zinc-900">Attempts</div>
+          </div>
+          <div class="rounded-lg border border-zinc-200 bg-white p-3">
+            <div class="text-xs font-medium uppercase tracking-normal text-zinc-500">Review</div>
+            <div class="mt-2 font-semibold text-zinc-900">SRS</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm">
+        <div>
+          <h2 class="text-xl font-semibold tracking-normal">Sign in</h2>
+          <p class="mt-2 text-sm text-zinc-600" aria-live="polite">%s</p>
+        </div>
+        <form class="mt-6 space-y-4" method="post" action="%s">
+          <div>
+            <label class="block text-sm font-medium text-zinc-700" for="email">Email</label>
+            <input id="email" class="mt-2 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10" type="email" name="email" autocomplete="email" autofocus required>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-zinc-700" for="password">Password</label>
+            <input id="password" class="mt-2 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10" type="password" name="password" autocomplete="current-password" required>
+          </div>
+          <button class="w-full rounded-md bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2" type="submit">Log in</button>
+        </form>
+      </section>
+    </main>
+  </body>
+</html>`
 
 func (s *server) handleLoginPage(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, _ = fmt.Fprintf(w, loginPage, "sign in to continue.")
+	_, _ = fmt.Fprintf(w, loginPage, "sign in to continue.", s.appPath("/login"))
 }
 
 func (s *server) handleLoginSubmit(w http.ResponseWriter, r *http.Request) {
@@ -201,12 +256,12 @@ func (s *server) handleLoginSubmit(w http.ResponseWriter, r *http.Request) {
 	const q = `SELECT id, password_hash FROM users WHERE email = $1`
 	if err := s.store.DB().QueryRow(r.Context(), q, email).Scan(&userID, &hash); err != nil {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		_, _ = fmt.Fprintf(w, loginPage, "invalid email or password.")
+		_, _ = fmt.Fprintf(w, loginPage, "invalid email or password.", s.appPath("/login"))
 		return
 	}
 	if err := auth.VerifyPassword(hash, pw); err != nil {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		_, _ = fmt.Fprintf(w, loginPage, "invalid email or password.")
+		_, _ = fmt.Fprintf(w, loginPage, "invalid email or password.", s.appPath("/login"))
 		return
 	}
 	token, err := s.authmw.IssueWebToken(r.Context(), userID)
@@ -215,7 +270,7 @@ func (s *server) handleLoginSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.authmw.SetSessionCookie(w, token)
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	http.Redirect(w, r, s.appPath("/"), http.StatusSeeOther)
 }
 
 func (s *server) handleLogout(w http.ResponseWriter, r *http.Request) {
@@ -223,7 +278,7 @@ func (s *server) handleLogout(w http.ResponseWriter, r *http.Request) {
 		_ = s.authmw.RevokeWebToken(r.Context(), c.Value)
 	}
 	s.authmw.ClearSessionCookie(w)
-	http.Redirect(w, r, "/login", http.StatusSeeOther)
+	http.Redirect(w, r, s.appPath("/login"), http.StatusSeeOther)
 }
 
 func (s *server) handleHome(w http.ResponseWriter, r *http.Request) {
@@ -249,7 +304,7 @@ func (s *server) handleHome(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.renderer.Page(w, "dashboard", web.PageData{
+	s.page(w, "dashboard", web.PageData{
 		Title:   "Dashboard",
 		UserID:  uid,
 		NavItem: "dashboard",
@@ -275,7 +330,7 @@ func (s *server) handleSessionStart(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	http.Redirect(w, r, "/session/today", http.StatusSeeOther)
+	http.Redirect(w, r, s.appPath("/session/today"), http.StatusSeeOther)
 }
 
 func (s *server) handleSessionToday(w http.ResponseWriter, r *http.Request) {
@@ -290,7 +345,7 @@ func (s *server) handleSessionToday(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	s.renderer.Page(w, "session_today", web.PageData{
+	s.page(w, "session_today", web.PageData{
 		Title:   "Today",
 		UserID:  uid,
 		NavItem: "today",
@@ -427,7 +482,7 @@ func (s *server) handleProblems(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	s.renderer.Page(w, "problems", web.PageData{
+	s.page(w, "problems", web.PageData{
 		Title:   "Problems",
 		UserID:  uid,
 		NavItem: "problems",
@@ -451,7 +506,7 @@ func (s *server) handleProblemDetail(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), status)
 		return
 	}
-	s.renderer.Page(w, "problem_detail", web.PageData{
+	s.page(w, "problem_detail", web.PageData{
 		Title:   detail.Problem.Title,
 		UserID:  uid,
 		NavItem: "problems",
@@ -501,7 +556,7 @@ func (s *server) handleProblemTriage(w http.ResponseWriter, r *http.Request) {
 	}
 	ref := r.Header.Get("Referer")
 	if ref == "" {
-		ref = "/problems"
+		ref = s.appPath("/problems")
 	}
 	http.Redirect(w, r, ref, http.StatusSeeOther)
 }
@@ -513,7 +568,7 @@ func (s *server) handlePatterns(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	s.renderer.Page(w, "patterns", web.PageData{
+	s.page(w, "patterns", web.PageData{
 		Title:   "Patterns",
 		UserID:  uid,
 		NavItem: "patterns",
@@ -532,7 +587,7 @@ func (s *server) handleStats(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	s.renderer.Page(w, "stats", web.PageData{
+	s.page(w, "stats", web.PageData{
 		Title:   "Stats",
 		UserID:  uid,
 		NavItem: "stats",
@@ -565,7 +620,7 @@ func (s *server) handleSettings(w http.ResponseWriter, r *http.Request) {
 			status = "cookies stored but marked invalid; re-sync via extension"
 		}
 	}
-	s.renderer.Page(w, "settings", web.PageData{
+	s.page(w, "settings", web.PageData{
 		Title:   "Settings",
 		UserID:  uid,
 		NavItem: "settings",
@@ -599,7 +654,7 @@ func (s *server) handleSettingsColdStart(w http.ResponseWriter, r *http.Request)
 	}
 	msg := fmt.Sprintf("imported recent=%d authed=%d duplicates=%d unknown=%d",
 		result.RecentImported, result.AuthedImported, result.DuplicatesSkipped, result.UnknownSkipped)
-	http.Redirect(w, r, "/settings?message="+url.QueryEscape(msg), http.StatusSeeOther)
+	http.Redirect(w, r, s.appPath("/settings")+"?message="+url.QueryEscape(msg), http.StatusSeeOther)
 }
 
 func (s *server) handleSettingsVacation(w http.ResponseWriter, r *http.Request) {
@@ -625,7 +680,7 @@ func (s *server) handleSettingsVacation(w http.ResponseWriter, r *http.Request) 
 	if until != nil {
 		msg = fmt.Sprintf("vacation mode enabled until %s", until.Format("2006-01-02"))
 	}
-	http.Redirect(w, r, "/settings?message="+url.QueryEscape(msg), http.StatusSeeOther)
+	http.Redirect(w, r, s.appPath("/settings")+"?message="+url.QueryEscape(msg), http.StatusSeeOther)
 }
 
 func (s *server) runColdStart(ctx context.Context, userID int64, username string) (ldsync.ColdStartResult, error) {

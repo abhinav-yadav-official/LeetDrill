@@ -59,3 +59,48 @@ func TestRendererPageIncludesHTMXShell(t *testing.T) {
 		}
 	}
 }
+
+func TestRendererPagePrefixesInternalLinks(t *testing.T) {
+	r, err := NewRendererWithBasePath("/leetdrill")
+	if err != nil {
+		t.Fatalf("NewRendererWithBasePath() error = %v", err)
+	}
+
+	rec := httptest.NewRecorder()
+	r.Page(rec, "dashboard", PageData{
+		Title:   "Dashboard",
+		UserID:  7,
+		NavItem: "dashboard",
+		Data:    map[string]string{"Now": "ok"},
+	})
+
+	body := rec.Body.String()
+	for _, want := range []string{
+		`href="/leetdrill/session/today"`,
+		`action="/leetdrill/session/start"`,
+		`href="/leetdrill/settings"`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("rendered dashboard missing prefixed URL %q:\n%s", want, body)
+		}
+	}
+}
+
+func TestAppPath(t *testing.T) {
+	tests := []struct {
+		base string
+		path string
+		want string
+	}{
+		{base: "", path: "/", want: "/"},
+		{base: "/leetdrill", path: "/", want: "/leetdrill/"},
+		{base: "leetdrill/", path: "/login", want: "/leetdrill/login"},
+		{base: "/", path: "/settings", want: "/settings"},
+	}
+
+	for _, tt := range tests {
+		if got := AppPath(tt.base, tt.path); got != tt.want {
+			t.Fatalf("AppPath(%q, %q) = %q, want %q", tt.base, tt.path, got, tt.want)
+		}
+	}
+}

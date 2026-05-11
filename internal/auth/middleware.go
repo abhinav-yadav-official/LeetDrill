@@ -38,9 +38,10 @@ func UserID(ctx context.Context) int64 {
 
 // Authenticator wires middleware against a store.
 type Authenticator struct {
-	Store           *store.Store
-	SingleUserID    int64 // non-zero enables single-user mode (no login)
-	SecureCookies   bool  // set true behind TLS
+	Store         *store.Store
+	SingleUserID  int64 // non-zero enables single-user mode (no login)
+	SecureCookies bool  // set true behind TLS
+	BasePath      string
 }
 
 // SetSessionCookie writes the ld_session cookie.
@@ -48,7 +49,7 @@ func (a *Authenticator) SetSessionCookie(w http.ResponseWriter, token string) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     CookieName,
 		Value:    token,
-		Path:     "/",
+		Path:     a.cookiePath(),
 		Expires:  time.Now().Add(WebSessionDuration),
 		HttpOnly: true,
 		Secure:   a.SecureCookies,
@@ -61,7 +62,7 @@ func (a *Authenticator) ClearSessionCookie(w http.ResponseWriter) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     CookieName,
 		Value:    "",
-		Path:     "/",
+		Path:     a.cookiePath(),
 		Expires:  time.Unix(0, 0),
 		HttpOnly: true,
 		Secure:   a.SecureCookies,
@@ -81,13 +82,13 @@ func (a *Authenticator) RequireWebSession(next http.Handler) http.Handler {
 		}
 		cookie, err := r.Cookie(CookieName)
 		if err != nil || cookie.Value == "" {
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			http.Redirect(w, r, a.webPath("/login"), http.StatusSeeOther)
 			return
 		}
 		userID, err := a.lookup(r.Context(), store.AuthKindWeb, cookie.Value)
 		if err != nil {
 			a.ClearSessionCookie(w)
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			http.Redirect(w, r, a.webPath("/login"), http.StatusSeeOther)
 			return
 		}
 		next.ServeHTTP(w, r.WithContext(WithUserID(r.Context(), userID)))
@@ -166,4 +167,40 @@ func (a *Authenticator) RevokeWebToken(ctx context.Context, token string) error 
 		return err
 	}
 	return store.DeleteAuthSession(ctx, a.Store.DB(), store.AuthKindWeb, hash)
+}
+
+func (a *Authenticator) cookiePath() string {
+	base := cleanBasePath(a.BasePath)
+	if base == "" {
+		return "/"
+	}
+	return base
+}
+
+func (a *Authenticator) webPath(target string) string {
+	base := cleanBasePath(a.BasePath)
+	if target == "" {
+		target = "/"
+	}
+	if !strings.HasPrefix(target, "/") {
+		target = "/" + target
+	}
+	if base == "" {
+		return target
+	}
+	if target == "/" {
+		return base + "/"
+	}
+	return base + target
+}
+
+func cleanBasePath(base string) string {
+	base = strings.TrimSpace(base)
+	if base == "" || base == "/" {
+		return ""
+	}
+	if !strings.HasPrefix(base, "/") {
+		base = "/" + base
+	}
+	return strings.TrimRight(base, "/")
 }

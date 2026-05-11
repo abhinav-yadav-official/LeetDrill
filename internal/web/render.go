@@ -23,9 +23,15 @@ type Renderer struct {
 }
 
 func NewRenderer() (*Renderer, error) {
+	return NewRendererWithBasePath("")
+}
+
+func NewRendererWithBasePath(basePath string) (*Renderer, error) {
+	basePath = CleanBasePath(basePath)
 	funcs := template.FuncMap{
 		"fmtTime":      fmtTime,
 		"fmtRelTime":   fmtRelTime,
+		"appPath":      func(target string) string { return AppPath(basePath, target) },
 		"badgeClass":   badgeClassForDifficulty,
 		"statusBadge":  badgeClassForStatus,
 		"verdictBadge": badgeClassForVerdict,
@@ -100,10 +106,11 @@ func NewRenderer() (*Renderer, error) {
 
 // PageData writes a page template using the base layout. Data is exposed as `.Data`.
 type PageData struct {
-	Title   string
-	UserID  int64
-	NavItem string
-	Data    any
+	Title    string
+	UserID   int64
+	NavItem  string
+	BasePath string
+	Data     any
 }
 
 func (r *Renderer) Page(w http.ResponseWriter, name string, p PageData) {
@@ -132,6 +139,35 @@ func (r *Renderer) Partial(w http.ResponseWriter, name string, data any) {
 }
 
 // ---- template funcs ----
+
+func AppPath(basePath, target string) string {
+	basePath = CleanBasePath(basePath)
+	target = strings.TrimSpace(target)
+	if target == "" {
+		target = "/"
+	}
+	if !strings.HasPrefix(target, "/") {
+		target = "/" + target
+	}
+	if basePath == "" {
+		return target
+	}
+	if target == "/" {
+		return basePath + "/"
+	}
+	return basePath + target
+}
+
+func CleanBasePath(basePath string) string {
+	basePath = strings.TrimSpace(basePath)
+	if basePath == "" || basePath == "/" {
+		return ""
+	}
+	if !strings.HasPrefix(basePath, "/") {
+		basePath = "/" + basePath
+	}
+	return strings.TrimRight(basePath, "/")
+}
 
 func fmtTime(t any) string {
 	switch v := t.(type) {

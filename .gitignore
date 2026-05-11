@@ -10,3 +10,4 @@ web/static/app.css
 node_modules/
 .idea/
 .vscode/
+.superpowers/

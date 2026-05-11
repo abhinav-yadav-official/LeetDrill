@@ -12,21 +12,21 @@
   <body class="min-h-screen bg-zinc-50 text-zinc-950">
     <div class="flex min-h-screen">
       <aside class="hidden w-56 shrink-0 border-r border-zinc-200 bg-white px-4 py-5 md:block">
-        <a href="/" class="block text-lg font-semibold tracking-tight">LeetDrill</a>
+        <a href="{{appPath "/"}}" class="block text-lg font-semibold tracking-tight">LeetDrill</a>
         <nav class="mt-6 space-y-1 text-sm">
-          <a class="{{if eq .NavItem "dashboard"}}bg-zinc-900 text-white{{else}}text-zinc-700 hover:bg-zinc-100{{end}} block rounded-md px-3 py-2" href="/">Dashboard</a>
-          <a class="{{if eq .NavItem "today"}}bg-zinc-900 text-white{{else}}text-zinc-700 hover:bg-zinc-100{{end}} block rounded-md px-3 py-2" href="/session/today">Today</a>
-          <a class="{{if eq .NavItem "problems"}}bg-zinc-900 text-white{{else}}text-zinc-700 hover:bg-zinc-100{{end}} block rounded-md px-3 py-2" href="/problems">Problems</a>
-          <a class="{{if eq .NavItem "patterns"}}bg-zinc-900 text-white{{else}}text-zinc-700 hover:bg-zinc-100{{end}} block rounded-md px-3 py-2" href="/patterns">Patterns</a>
-          <a class="{{if eq .NavItem "stats"}}bg-zinc-900 text-white{{else}}text-zinc-700 hover:bg-zinc-100{{end}} block rounded-md px-3 py-2" href="/stats">Stats</a>
-          <a class="{{if eq .NavItem "settings"}}bg-zinc-900 text-white{{else}}text-zinc-700 hover:bg-zinc-100{{end}} block rounded-md px-3 py-2" href="/settings">Settings</a>
+          <a class="{{if eq .NavItem "dashboard"}}bg-zinc-900 text-white{{else}}text-zinc-700 hover:bg-zinc-100{{end}} block rounded-md px-3 py-2" href="{{appPath "/"}}">Dashboard</a>
+          <a class="{{if eq .NavItem "today"}}bg-zinc-900 text-white{{else}}text-zinc-700 hover:bg-zinc-100{{end}} block rounded-md px-3 py-2" href="{{appPath "/session/today"}}">Today</a>
+          <a class="{{if eq .NavItem "problems"}}bg-zinc-900 text-white{{else}}text-zinc-700 hover:bg-zinc-100{{end}} block rounded-md px-3 py-2" href="{{appPath "/problems"}}">Problems</a>
+          <a class="{{if eq .NavItem "patterns"}}bg-zinc-900 text-white{{else}}text-zinc-700 hover:bg-zinc-100{{end}} block rounded-md px-3 py-2" href="{{appPath "/patterns"}}">Patterns</a>
+          <a class="{{if eq .NavItem "stats"}}bg-zinc-900 text-white{{else}}text-zinc-700 hover:bg-zinc-100{{end}} block rounded-md px-3 py-2" href="{{appPath "/stats"}}">Stats</a>
+          <a class="{{if eq .NavItem "settings"}}bg-zinc-900 text-white{{else}}text-zinc-700 hover:bg-zinc-100{{end}} block rounded-md px-3 py-2" href="{{appPath "/settings"}}">Settings</a>
         </nav>
       </aside>
       <main class="min-w-0 flex-1">
         <header class="border-b border-zinc-200 bg-white px-4 py-3 md:hidden">
           <div class="flex items-center justify-between">
-            <a href="/" class="font-semibold">LeetDrill</a>
-            <a href="/session/today" class="rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white">Today</a>
+            <a href="{{appPath "/"}}" class="font-semibold">LeetDrill</a>
+            <a href="{{appPath "/session/today"}}" class="rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white">Today</a>
           </div>
         </header>
         <section class="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">

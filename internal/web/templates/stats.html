@@ -10,7 +10,7 @@
     </div>
     <div class="divide-y divide-zinc-100">
       {{range .Data.RecentAttempts}}
-        <a class="flex items-center justify-between gap-3 px-4 py-3 hover:bg-zinc-50" href="/problems/{{.Slug}}">
+        <a class="flex items-center justify-between gap-3 px-4 py-3 hover:bg-zinc-50" href="{{appPath "/problems"}}/{{.Slug}}">
           <div class="min-w-0">
             <div class="truncate font-medium">{{.Title}}</div>
             <div class="text-xs text-zinc-500">{{fmtTime .CompletedAt}} · {{.Difficulty}}</div>

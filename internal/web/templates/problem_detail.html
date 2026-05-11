@@ -2,7 +2,7 @@
 <div class="flex flex-col gap-5">
   <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
     <div>
-      <a href="/problems" class="text-sm text-zinc-500 hover:text-zinc-900">Problems</a>
+      <a href="{{appPath "/problems"}}" class="text-sm text-zinc-500 hover:text-zinc-900">Problems</a>
       <h1 class="mt-1 text-2xl font-semibold tracking-tight">{{.Data.Problem.Title}}</h1>
       <div class="mt-2 flex flex-wrap gap-2">
         <span class="rounded-full px-2 py-1 text-xs font-medium {{badgeClass .Data.Problem.Difficulty}}">{{.Data.Problem.Difficulty}}</span>
@@ -24,18 +24,18 @@
     <h2 class="font-medium">Actions</h2>
     <div class="mt-4 flex flex-wrap gap-2">
       {{if eq .Data.State.Status "leech"}}
-        <form method="post" action="/problems/{{.Data.Problem.ID}}/triage">
+        <form method="post" action="{{appPath "/problems"}}/{{.Data.Problem.ID}}/triage">
           <input type="hidden" name="action" value="unleech">
           <button class="rounded-md bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700">Un-leech</button>
         </form>
       {{end}}
       {{if ne .Data.State.Status "mastered"}}
-        <form method="post" action="/problems/{{.Data.Problem.ID}}/triage">
+        <form method="post" action="{{appPath "/problems"}}/{{.Data.Problem.ID}}/triage">
           <input type="hidden" name="action" value="master">
           <button class="rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium hover:bg-zinc-50">Mark Mastered</button>
         </form>
       {{end}}
-      <form method="post" action="/problems/{{.Data.Problem.ID}}/triage" onsubmit="return confirm('Reset SRS state for this problem? History will remain but scheduling will restart.')">
+      <form method="post" action="{{appPath "/problems"}}/{{.Data.Problem.ID}}/triage" onsubmit="return confirm('Reset SRS state for this problem? History will remain but scheduling will restart.')">
         <input type="hidden" name="action" value="reset">
         <button class="rounded-md border border-rose-200 bg-white px-4 py-2 text-sm font-medium text-rose-600 hover:bg-rose-50">Reset SRS</button>
       </form>

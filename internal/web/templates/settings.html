@@ -12,7 +12,7 @@
       <div class="flex justify-between gap-4"><dt class="text-zinc-500">Updated</dt><dd class="font-medium">{{fmtTime .Data.CookieUpdatedAt}}</dd></div>
     </dl>
   </div>
-  <form class="mt-5 rounded-lg border border-zinc-200 bg-white p-4" method="post" action="/settings/cold-start">
+  <form class="mt-5 rounded-lg border border-zinc-200 bg-white p-4" method="post" action="{{appPath "/settings/cold-start"}}">
     <h2 class="font-medium">Import LeetCode history</h2>
     <p class="mt-1 text-sm text-zinc-600">Uses public recent ACs and synced cookies when available.</p>
     <label class="mt-4 block text-sm font-medium text-zinc-700" for="username">LeetCode username</label>
@@ -27,12 +27,12 @@
       <div class="mt-4 rounded-md bg-zinc-50 p-3 text-sm">
         <span class="font-medium">Active</span> until {{fmtTime .Data.VacationUntil}}
       </div>
-      <form class="mt-4" method="post" action="/settings/vacation">
+      <form class="mt-4" method="post" action="{{appPath "/settings/vacation"}}">
         <input type="hidden" name="action" value="stop">
         <button class="rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium hover:bg-zinc-50">End vacation early</button>
       </form>
     {{else}}
-      <form class="mt-4" method="post" action="/settings/vacation">
+      <form class="mt-4" method="post" action="{{appPath "/settings/vacation"}}">
         <input type="hidden" name="action" value="start">
         <div class="flex items-center gap-3">
           <label class="text-sm font-medium text-zinc-700" for="days">Pause for</label>
@@ -48,7 +48,7 @@
     {{end}}
   </div>
 
-  <form class="mt-5" method="post" action="/logout">
+  <form class="mt-5" method="post" action="{{appPath "/logout"}}">
     <button class="rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium hover:bg-zinc-50">Log out</button>
   </form>
 </div>

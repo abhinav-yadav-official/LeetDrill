@@ -5,7 +5,7 @@
       <h1 class="text-2xl font-semibold tracking-tight">Problems</h1>
       <p class="mt-1 text-sm text-zinc-600">Filter by SRS state and open detail history.</p>
     </div>
-    <form class="flex gap-2" method="get" action="/problems">
+    <form class="flex gap-2" method="get" action="{{appPath "/problems"}}">
       <select class="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm" name="filter">
         <option value="">all</option>
         <option value="due" {{if eq .Data.Filter "due"}}selected{{end}}>due</option>
