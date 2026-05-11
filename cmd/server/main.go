@@ -138,6 +138,8 @@ func (s *server) router() http.Handler {
 
 	r.Get("/login", s.handleLoginPage)
 	r.Post("/login", s.handleLoginSubmit)
+	r.Get("/signup", s.handleSignupPage)
+	r.Post("/signup", s.handleSignupSubmit)
 	r.Post("/logout", s.handleLogout)
 
 	r.Group(func(r chi.Router) {
@@ -231,6 +233,63 @@ const loginPage = `<!doctype html>
           </div>
           <button class="w-full rounded-md bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2" type="submit">Log in</button>
         </form>
+        <p class="mt-5 text-center text-sm text-zinc-600">New here? <a class="font-medium text-zinc-950 underline" href="%s">Create an account</a></p>
+      </section>
+    </main>
+  </body>
+</html>`
+
+const signupPage = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sign up · LeetDrill</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="min-h-screen bg-zinc-50 text-zinc-950">
+    <main class="mx-auto grid min-h-screen max-w-6xl items-center gap-10 px-4 py-10 sm:px-6 lg:grid-cols-[1fr_420px] lg:px-8">
+      <section class="max-w-xl">
+        <div class="text-sm font-semibold uppercase tracking-normal text-zinc-500">LeetDrill</div>
+        <h1 class="mt-3 text-3xl font-semibold tracking-normal text-zinc-950 sm:text-4xl">Daily review flow for LeetCode practice.</h1>
+        <p class="mt-4 max-w-lg text-base leading-7 text-zinc-600">Track recent submissions, spaced repetition, and difficult problems from one focused workspace.</p>
+        <div class="mt-8 grid max-w-md grid-cols-3 gap-3 text-sm">
+          <div class="rounded-lg border border-zinc-200 bg-white p-3">
+            <div class="text-xs font-medium uppercase tracking-normal text-zinc-500">Queue</div>
+            <div class="mt-2 font-semibold text-zinc-900">Due first</div>
+          </div>
+          <div class="rounded-lg border border-zinc-200 bg-white p-3">
+            <div class="text-xs font-medium uppercase tracking-normal text-zinc-500">Signal</div>
+            <div class="mt-2 font-semibold text-zinc-900">Attempts</div>
+          </div>
+          <div class="rounded-lg border border-zinc-200 bg-white p-3">
+            <div class="text-xs font-medium uppercase tracking-normal text-zinc-500">Review</div>
+            <div class="mt-2 font-semibold text-zinc-900">SRS</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm">
+        <div>
+          <h2 class="text-xl font-semibold tracking-normal">Create account</h2>
+          <p class="mt-2 text-sm text-zinc-600" aria-live="polite">%s</p>
+        </div>
+        <form class="mt-6 space-y-4" method="post" action="%s">
+          <div>
+            <label class="block text-sm font-medium text-zinc-700" for="email">Email</label>
+            <input id="email" class="mt-2 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10" type="email" name="email" autocomplete="email" autofocus required>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-zinc-700" for="password">Password</label>
+            <input id="password" class="mt-2 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10" type="password" name="password" autocomplete="new-password" minlength="8" required>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-zinc-700" for="confirm_password">Confirm password</label>
+            <input id="confirm_password" class="mt-2 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10" type="password" name="confirm_password" autocomplete="new-password" minlength="8" required>
+          </div>
+          <button class="w-full rounded-md bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2" type="submit">Sign up</button>
+        </form>
+        <p class="mt-5 text-center text-sm text-zinc-600">Already have an account? <a class="font-medium text-zinc-950 underline" href="%s">Log in</a></p>
       </section>
     </main>
   </body>
@@ -238,7 +297,7 @@ const loginPage = `<!doctype html>
 
 func (s *server) handleLoginPage(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, _ = fmt.Fprintf(w, loginPage, "sign in to continue.", s.appPath("/login"))
+	_, _ = fmt.Fprintf(w, loginPage, "sign in to continue.", s.appPath("/login"), s.appPath("/signup"))
 }
 
 func (s *server) handleLoginSubmit(w http.ResponseWriter, r *http.Request) {
@@ -256,12 +315,12 @@ func (s *server) handleLoginSubmit(w http.ResponseWriter, r *http.Request) {
 	const q = `SELECT id, password_hash FROM users WHERE email = $1`
 	if err := s.store.DB().QueryRow(r.Context(), q, email).Scan(&userID, &hash); err != nil {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		_, _ = fmt.Fprintf(w, loginPage, "invalid email or password.", s.appPath("/login"))
+		_, _ = fmt.Fprintf(w, loginPage, "invalid email or password.", s.appPath("/login"), s.appPath("/signup"))
 		return
 	}
 	if err := auth.VerifyPassword(hash, pw); err != nil {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		_, _ = fmt.Fprintf(w, loginPage, "invalid email or password.", s.appPath("/login"))
+		_, _ = fmt.Fprintf(w, loginPage, "invalid email or password.", s.appPath("/login"), s.appPath("/signup"))
 		return
 	}
 	token, err := s.authmw.IssueWebToken(r.Context(), userID)
@@ -271,6 +330,64 @@ func (s *server) handleLoginSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	s.authmw.SetSessionCookie(w, token)
 	http.Redirect(w, r, s.appPath("/"), http.StatusSeeOther)
+}
+
+func (s *server) handleSignupPage(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	_, _ = fmt.Fprintf(w, signupPage, "create an account.", s.appPath("/signup"), s.appPath("/login"))
+}
+
+func (s *server) handleSignupSubmit(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad form", http.StatusBadRequest)
+		return
+	}
+	email, message := validateSignupForm(
+		r.FormValue("email"),
+		r.FormValue("password"),
+		r.FormValue("confirm_password"),
+	)
+	if message != "" {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = fmt.Fprintf(w, signupPage, message, s.appPath("/signup"), s.appPath("/login"))
+		return
+	}
+	hash, err := auth.HashPassword(r.FormValue("password"))
+	if err != nil {
+		http.Error(w, "hash password", http.StatusInternalServerError)
+		return
+	}
+	var userID int64
+	err = s.store.DB().QueryRow(r.Context(),
+		`INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id`,
+		email, hash,
+	).Scan(&userID)
+	if err != nil {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = fmt.Fprintf(w, signupPage, "could not create account.", s.appPath("/signup"), s.appPath("/login"))
+		return
+	}
+	token, err := s.authmw.IssueWebToken(r.Context(), userID)
+	if err != nil {
+		http.Error(w, "issue token", http.StatusInternalServerError)
+		return
+	}
+	s.authmw.SetSessionCookie(w, token)
+	http.Redirect(w, r, s.appPath("/"), http.StatusSeeOther)
+}
+
+func validateSignupForm(email, password, confirm string) (string, string) {
+	email = strings.ToLower(strings.TrimSpace(email))
+	switch {
+	case email == "":
+		return "", "email is required."
+	case len(password) < 8:
+		return "", "password must be at least 8 characters."
+	case password != confirm:
+		return "", "passwords do not match."
+	default:
+		return email, ""
+	}
 }
 
 func (s *server) handleLogout(w http.ResponseWriter, r *http.Request) {
