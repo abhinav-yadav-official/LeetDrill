@@ -23,6 +23,7 @@ def main():
 
     require(chrome["manifest_version"] == 3, "chrome manifest must stay MV3")
     require(chrome["background"]["service_worker"] == "background.js", "chrome must use service worker")
+    require(chrome["background"].get("type") != "module", "chrome background must stay classic for importScripts")
     require((EXT / "compat.js").exists(), "shared compat.js missing")
 
     require(firefox["manifest_version"] == 2, "firefox manifest must use MV2")
