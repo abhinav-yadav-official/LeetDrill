@@ -11,8 +11,6 @@
 //   - Four ratings instead of SM-2's 0–5 scale: failed/struggled/normal/strong.
 //   - Intervals capped to avoid the "200-day next review" silliness that
 //     happens with vanilla SM-2 on items you've nailed five times.
-//   - Leech detection: 4+ failures flips a problem to Leech status so the
-//     scheduler stops surfacing it in regular rotation.
 package srs
 
 import (
@@ -35,10 +33,8 @@ type Status string
 
 const (
 	StatusNew      Status = "new"      // never attempted
-	StatusLearning Status = "learning" // attempted, interval < 7 days
-	StatusReview   Status = "review"   // interval >= 7 days
+	StatusReview   Status = "review"   // attempted, scheduled for future review
 	StatusMastered Status = "mastered" // interval >= 60 days and ease >= 2.5
-	StatusLeech    Status = "leech"    // failed >= 4 times total — removed from rotation
 )
 
 // Verdict mirrors LeetCode's submission verdicts.
@@ -222,26 +218,15 @@ func classifyStatus(s State) Status {
 	if s.Status == StatusNew {
 		return StatusNew
 	}
-	if s.TotalFails >= 4 {
-		return StatusLeech
-	}
-	switch {
-	case s.IntervalDays >= 60 && s.EaseFactor >= 2.5:
+	if s.IntervalDays >= 60 && s.EaseFactor >= 2.5 {
 		return StatusMastered
-	case s.IntervalDays >= 7:
-		return StatusReview
-	default:
-		return StatusLearning
 	}
+	return StatusReview
 }
 
 // NextState applies a rating to the current review state and returns the new state.
 //
 // Caller computes next_due_at = now + IntervalDays*24h.
-//
-// Once a problem hits Leech status, NextState still updates ease/streak/fails
-// honestly, but the scheduler should consult Status before queueing it — leech
-// problems live in a separate view, not in daily reviews.
 func NextState(curr State, r Rating) State {
 	// First time seeing this problem (Status == "new") and we have a rating.
 	if curr.Status == StatusNew {
@@ -255,7 +240,7 @@ func NextState(curr State, r Rating) State {
 			}
 			out.Status = classifyStatus(out)
 			if out.Status == StatusNew {
-				out.Status = StatusLearning // any non-new state is at minimum Learning
+				out.Status = StatusReview
 			}
 			return out
 		default:
@@ -267,7 +252,7 @@ func NextState(curr State, r Rating) State {
 			}
 			out.Status = classifyStatus(out)
 			if out.Status == StatusNew {
-				out.Status = StatusLearning
+				out.Status = StatusReview
 			}
 			return out
 		}

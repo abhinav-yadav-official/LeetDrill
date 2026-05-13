@@ -101,13 +101,6 @@ ON CONFLICT (user_id, problem_id) DO NOTHING`
 // TriageUserProblem manually adjusts the review schedule.
 func TriageUserProblem(ctx context.Context, db DBTX, userID, problemID int64, action string) error {
 	switch action {
-	case "unleech":
-		// Reset fails and put back into rotation as learning.
-		_, err := db.Exec(ctx, `
-UPDATE user_problems
-   SET total_fails = 0, status = 'learning', next_due_at = now()
- WHERE user_id = $1 AND problem_id = $2`, userID, problemID)
-		return err
 	case "master":
 		// Skip all future reviews.
 		_, err := db.Exec(ctx, `

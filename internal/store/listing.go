@@ -40,7 +40,7 @@ type ProblemFilters struct {
 }
 
 // ListProblemsForUser returns problems joined with the user's review state.
-// Filter values: "" (all), "due", "learning", "review", "mastered", "leech", "new", "solved", "not-solved".
+// Filter values: "" (all), "due", "review", "mastered", "new", "solved", "not-solved".
 func ListProblemsForUser(ctx context.Context, db DBTX, userID int64, filters ProblemFilters, limit, offset int) ([]ProblemListItem, error) {
 	if limit <= 0 || limit > 500 {
 		limit = 50
@@ -160,8 +160,8 @@ func problemStateCondition(state string) string {
 	switch state {
 	case "due":
 		return `up.next_due_at IS NOT NULL AND up.next_due_at <= now()
-		         AND up.status NOT IN ('leech','new','mastered')`
-	case "learning", "review", "mastered", "leech":
+		         AND up.status = 'review'`
+	case "review", "mastered":
 		return fmt.Sprintf(`up.status = '%s'`, state)
 	case "new":
 		return `up.user_id IS NULL`
@@ -249,26 +249,39 @@ LIMIT $3`
 	return a, nil
 }
 
-// UpdateLatestAttemptJournal sets the journal text on the most-recent attempt
-// for (user, problem). Returns ErrNotFound if no attempt exists.
-func UpdateLatestAttemptJournal(ctx context.Context, db DBTX, userID, problemID int64, journal string) error {
+// UpdateLatestAttemptReview sets the journal text and mistake taxonomy tags on
+// the most-recent attempt for (user, problem). Returns ErrNotFound if no attempt exists.
+func UpdateLatestAttemptReview(ctx context.Context, db DBTX, userID, problemID int64, journal string, mistakeTags []string) error {
+	if mistakeTags == nil {
+		mistakeTags = []string{}
+	}
+	tagsJSON, err := json.Marshal(mistakeTags)
+	if err != nil {
+		return fmt.Errorf("marshal mistake tags: %w", err)
+	}
 	const q = `
 UPDATE attempts
-   SET journal = $3
+   SET journal = $3,
+       mistake_tags = $4::jsonb
  WHERE id = (
    SELECT id FROM attempts
    WHERE user_id = $1 AND problem_id = $2
    ORDER BY completed_at DESC
    LIMIT 1
  )`
-	tag, err := db.Exec(ctx, q, userID, problemID, journal)
+	tag, err := db.Exec(ctx, q, userID, problemID, journal, tagsJSON)
 	if err != nil {
-		return fmt.Errorf("update journal: %w", err)
+		return fmt.Errorf("update attempt review: %w", err)
 	}
 	if tag.RowsAffected() == 0 {
 		return ErrNotFound
 	}
 	return nil
+}
+
+// UpdateLatestAttemptJournal preserves the old journal-only call path.
+func UpdateLatestAttemptJournal(ctx context.Context, db DBTX, userID, problemID int64, journal string) error {
+	return UpdateLatestAttemptReview(ctx, db, userID, problemID, journal, []string{})
 }
 
 // PatternStrength is the aggregate per-pattern signal shown in the patterns view.

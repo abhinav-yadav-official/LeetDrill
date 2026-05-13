@@ -57,6 +57,33 @@ func TestReconcileSessionCompletionsUsesCapturedACAttempts(t *testing.T) {
 	}
 }
 
+func TestWeakProblemIDsSQLRanksMistakeTagsFailuresAndLeeches(t *testing.T) {
+	sql := weakProblemIDsSQL()
+	for _, want := range []string{
+		"jsonb_array_length(a.mistake_tags) > 0",
+		"COALESCE(up.total_fails, 0)",
+		"weakness_score DESC",
+		"LIMIT $2",
+	} {
+		if !strings.Contains(sql, want) {
+			t.Fatalf("weak queue query missing %q:\n%s", want, sql)
+		}
+	}
+}
+
+func TestAppendUniqueIDsKeepsOrderAndStopsAtLimit(t *testing.T) {
+	got := appendUniqueIDs([]int64{3, 1}, 4, []int64{1, 2, 3, 4, 5})
+	want := []int64{3, 1, 2, 4}
+	if len(got) != len(want) {
+		t.Fatalf("appendUniqueIDs() = %#v, want %#v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("appendUniqueIDs() = %#v, want %#v", got, want)
+		}
+	}
+}
+
 type captureExecDB struct {
 	sql  string
 	args []any

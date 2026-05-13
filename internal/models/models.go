@@ -17,10 +17,8 @@ type Status string
 
 const (
 	StatusNew      Status = "new"
-	StatusLearning Status = "learning"
 	StatusReview   Status = "review"
 	StatusMastered Status = "mastered"
-	StatusLeech    Status = "leech"
 )
 
 type Tag struct {

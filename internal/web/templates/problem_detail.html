@@ -23,12 +23,6 @@
   <section class="rounded-lg border border-zinc-200 bg-white p-4">
     <h2 class="font-medium">Actions</h2>
     <div class="mt-4 flex flex-wrap gap-2">
-      {{if eq .Data.State.Status "leech"}}
-        <form method="post" action="{{appPath "/problems"}}/{{.Data.Problem.ID}}/triage">
-          <input type="hidden" name="action" value="unleech">
-          <button class="rounded-md bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700">Un-leech</button>
-        </form>
-      {{end}}
       {{if ne .Data.State.Status "mastered"}}
         <form method="post" action="{{appPath "/problems"}}/{{.Data.Problem.ID}}/triage">
           <input type="hidden" name="action" value="master">
@@ -53,6 +47,7 @@
             <span class="rounded-full px-2 py-1 text-xs font-medium {{verdictBadge .Verdict}}">{{.Verdict}}</span>
             <span class="text-sm font-medium">{{.DerivedRating}}</span>
             <span class="text-sm text-zinc-500">{{fmtTime .CompletedAt}}</span>
+            {{range .MistakeTags}}<span class="rounded-md bg-zinc-100 px-2 py-1 text-xs text-zinc-700">{{mistakeLabel .}}</span>{{end}}
           </div>
           {{if .Journal}}<p class="mt-2 whitespace-pre-wrap text-sm text-zinc-700">{{.Journal}}</p>{{end}}
         </div>

@@ -36,8 +36,10 @@ func NewRendererWithBasePath(basePath string) (*Renderer, error) {
 		"statusBadge":  badgeClassForStatus,
 		"statusLabel":  labelForStatus,
 		"verdictBadge": badgeClassForVerdict,
+		"mistakeLabel": labelForMistakeTag,
 		"upper":        strings.ToUpper,
 		"hasItems":     func(n int) bool { return n > 0 },
+		"ldLogo":       ldLogo,
 	}
 
 	base, err := assetsFS.ReadFile("templates/_base.html")
@@ -232,27 +234,42 @@ func badgeClassForStatus(s any) string {
 	switch fmt.Sprint(s) {
 	case "new":
 		return "bg-slate-200 text-slate-700"
-	case "learning":
-		return "bg-blue-100 text-blue-800"
 	case "review":
 		return "bg-sky-100 text-sky-800"
 	case "mastered":
 		return "bg-emerald-100 text-emerald-800"
-	case "leech":
-		return "bg-rose-100 text-rose-800"
 	}
 	return "bg-slate-100 text-slate-700"
 }
 
 func labelForStatus(s any) string {
-	switch fmt.Sprint(s) {
-	case "review":
-		return "due later"
-	case "leech":
-		return "needs work"
+	return fmt.Sprint(s)
+}
+
+func labelForMistakeTag(tag any) string {
+	switch fmt.Sprint(tag) {
+	case "edge-case":
+		return "Edge case"
+	case "off-by-one":
+		return "Off by one"
+	case "wrong-invariant":
+		return "Wrong invariant"
+	case "complexity":
+		return "Complexity"
+	case "implementation-bug":
+		return "Implementation bug"
+	case "pattern-gap":
+		return "Pattern gap"
 	default:
-		return fmt.Sprint(s)
+		return fmt.Sprint(tag)
 	}
+}
+
+func ldLogo() template.HTML {
+	return template.HTML(`<svg aria-label="LeetDrill logo" role="img" viewBox="0 0 64 64" class="h-8 w-8 shrink-0 rounded-md">
+          <rect width="64" height="64" rx="12" fill="#18181b"></rect>
+          <text x="32" y="39" text-anchor="middle" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="24" font-weight="800" fill="#f4f4f5">LD</text>
+        </svg>`)
 }
 
 func badgeClassForVerdict(v any) string {

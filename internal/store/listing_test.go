@@ -24,7 +24,7 @@ func TestCountProblemsForUserUsesSameFilterJoin(t *testing.T) {
 		"FROM problems p",
 		"LEFT JOIN user_problems up",
 		"up.next_due_at IS NOT NULL",
-		"up.status NOT IN ('leech','new','mastered')",
+		"up.status = 'review'",
 	} {
 		if !strings.Contains(db.sql, want) {
 			t.Fatalf("count query missing %q:\n%s", want, db.sql)
@@ -204,6 +204,27 @@ func TestListPatternsWithStrengthUsesTotalProblemsAsDenominator(t *testing.T) {
 	}
 	if strings.Contains(sql, "COUNT(a.id)") {
 		t.Fatalf("pattern strength must not divide by attempts:\n%s", sql)
+	}
+}
+
+func TestUpdateLatestAttemptReviewPersistsJournalAndMistakeTags(t *testing.T) {
+	db := &captureExecDB{tag: pgconn.NewCommandTag("UPDATE 1")}
+
+	err := UpdateLatestAttemptReview(context.Background(), db, 7, 62, "missed empty input", []string{"edge-case", "off-by-one"})
+	if err != nil {
+		t.Fatalf("UpdateLatestAttemptReview() error = %v", err)
+	}
+	for _, want := range []string{
+		"SET journal = $3",
+		"mistake_tags = $4::jsonb",
+		"ORDER BY completed_at DESC",
+	} {
+		if !strings.Contains(db.sql, want) {
+			t.Fatalf("update review query missing %q:\n%s", want, db.sql)
+		}
+	}
+	if got := db.args; len(got) != 4 || got[0] != int64(7) || got[1] != int64(62) || got[2] != "missed empty input" || string(got[3].([]byte)) != `["edge-case","off-by-one"]` {
+		t.Fatalf("update review args = %#v", got)
 	}
 }
 

@@ -90,7 +90,7 @@ func TestDeriveRating(t *testing.T) {
 func TestNextState_FirstAttempt(t *testing.T) {
 	init := NewState()
 
-	t.Run("first strong solve graduates to learning with interval 3", func(t *testing.T) {
+	t.Run("first strong solve graduates to review with interval 3", func(t *testing.T) {
 		got := NextState(init, RatingStrong)
 		if got.IntervalDays != 3 {
 			t.Errorf("interval = %d, want 3", got.IntervalDays)
@@ -98,8 +98,8 @@ func TestNextState_FirstAttempt(t *testing.T) {
 		if got.Streak != 1 {
 			t.Errorf("streak = %d, want 1", got.Streak)
 		}
-		if got.Status != StatusLearning {
-			t.Errorf("status = %v, want %v", got.Status, StatusLearning)
+		if got.Status != StatusReview {
+			t.Errorf("status = %v, want %v", got.Status, StatusReview)
 		}
 		if got.EaseFactor <= 2.5 {
 			t.Errorf("ease = %f, want > 2.5 (Strong bumps it up)", got.EaseFactor)
@@ -127,7 +127,7 @@ func TestNextState_FirstAttempt(t *testing.T) {
 
 func TestNextState_EaseClamp(t *testing.T) {
 	t.Run("ease never drops below 1.3", func(t *testing.T) {
-		s := State{EaseFactor: 1.35, IntervalDays: 5, Status: StatusLearning}
+		s := State{EaseFactor: 1.35, IntervalDays: 5, Status: StatusReview}
 		// Two failures should not drive ease below 1.3.
 		s = NextState(s, RatingFailed)
 		s = NextState(s, RatingFailed)
@@ -192,25 +192,6 @@ func TestNextState_Struggled(t *testing.T) {
 	}
 }
 
-// ---- Leech detection ----
-
-func TestNextState_LeechAfterFourFails(t *testing.T) {
-	s := NewState()
-	// Simulate: fail, recover, fail, recover, fail, recover, fail (4 total fails).
-	for i := 0; i < 3; i++ {
-		s = NextState(s, RatingFailed)
-		s = NextState(s, RatingNormal)
-	}
-	// 3 fails so far, status should not yet be leech.
-	if s.Status == StatusLeech {
-		t.Fatalf("status leeched too early at %d fails", s.TotalFails)
-	}
-	s = NextState(s, RatingFailed) // 4th fail
-	if s.Status != StatusLeech {
-		t.Errorf("status = %v after 4 fails, want %v", s.Status, StatusLeech)
-	}
-}
-
 // ---- Mastery promotion ----
 
 func TestNextState_PromotesToMastered(t *testing.T) {
@@ -245,11 +226,11 @@ func TestNextState_RealisticTrajectory(t *testing.T) {
 		wantNonZeroF int // expected fails
 	}
 	steps := []step{
-		{RatingFailed, 1, 1, StatusLearning, 1},
-		{RatingStruggled, 1, 2, StatusLearning, 1},
-		{RatingNormal, 2, 5, StatusLearning, 1},
-		{RatingStrong, 4, 10, StatusLearning, 1}, // interval ~5, still in Learning
-		{RatingStrong, 10, 30, StatusReview, 1},  // ~13, crosses into Review
+		{RatingFailed, 1, 1, StatusReview, 1},
+		{RatingStruggled, 1, 2, StatusReview, 1},
+		{RatingNormal, 2, 5, StatusReview, 1},
+		{RatingStrong, 4, 10, StatusReview, 1},
+		{RatingStrong, 10, 30, StatusReview, 1},
 	}
 
 	for i, st := range steps {

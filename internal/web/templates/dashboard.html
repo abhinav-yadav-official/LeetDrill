@@ -27,12 +27,12 @@
       <div class="mt-2 text-3xl font-semibold">{{.Data.StreakDays}}d</div>
     </div>
     <div class="rounded-lg border border-zinc-200 bg-white p-4">
-      <div class="text-xs font-medium uppercase text-zinc-500">Learning</div>
-      <div class="mt-2 text-3xl font-semibold">{{.Data.Counts.Learning}}</div>
+      <div class="text-xs font-medium uppercase text-zinc-500">Review</div>
+      <div class="mt-2 text-3xl font-semibold">{{.Data.Counts.Review}}</div>
     </div>
     <div class="rounded-lg border border-zinc-200 bg-white p-4">
-      <div class="text-xs font-medium uppercase text-zinc-500">Leech</div>
-      <div class="mt-2 text-3xl font-semibold">{{.Data.Counts.Leech}}</div>
+      <div class="text-xs font-medium uppercase text-zinc-500">Mastered</div>
+      <div class="mt-2 text-3xl font-semibold">{{.Data.Counts.Mastered}}</div>
     </div>
   </div>
 
@@ -60,7 +60,7 @@
       <h2 class="font-medium">Queue</h2>
       <dl class="mt-4 space-y-3 text-sm">
         <div class="flex justify-between"><dt class="text-zinc-500">Due in 24h</dt><dd class="font-medium">{{.Data.Counts.DueIn24h}}</dd></div>
-        <div class="flex justify-between"><dt class="text-zinc-500">Due later</dt><dd class="font-medium">{{.Data.Counts.Review}}</dd></div>
+        <div class="flex justify-between"><dt class="text-zinc-500">Review</dt><dd class="font-medium">{{.Data.Counts.Review}}</dd></div>
         <div class="flex justify-between"><dt class="text-zinc-500">Mastered</dt><dd class="font-medium">{{.Data.Counts.Mastered}}</dd></div>
         <div class="flex justify-between"><dt class="text-zinc-500">Catalog</dt><dd class="font-medium">{{.Data.Counts.TotalProblems}}</dd></div>
       </dl>

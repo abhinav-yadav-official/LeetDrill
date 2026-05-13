@@ -154,8 +154,141 @@ RETURNING id, started_at`
 	}, nil
 }
 
+// RebuildTodayWeakSession replaces today's queue with problems ranked by
+// recent weakness signals, then fills with due/new problems if needed.
+func RebuildTodayWeakSession(ctx context.Context, db DBTX, userID int64, size int) (*Session, error) {
+	if size <= 0 || size > 25 {
+		size = 5
+	}
+	today := time.Now().UTC().Truncate(24 * time.Hour)
+
+	weak, err := pickWeakProblemIDs(ctx, db, userID, size)
+	if err != nil {
+		return nil, err
+	}
+	pool := appendUniqueIDs(nil, size, weak)
+	if len(pool) < size {
+		due, err := pickDueProblemIDs(ctx, db, userID, size-len(pool))
+		if err != nil {
+			return nil, err
+		}
+		pool = appendUniqueIDs(pool, size, due)
+	}
+	if len(pool) < size {
+		news, err := pickNewProblemIDs(ctx, db, userID, size-len(pool))
+		if err != nil {
+			return nil, err
+		}
+		pool = appendUniqueIDs(pool, size, news)
+	}
+
+	pidsJSON, _ := json.Marshal(pool)
+	const q = `
+INSERT INTO sessions (user_id, date, problem_ids, completed_problem_ids)
+VALUES ($1, $2::date, $3::jsonb, '[]'::jsonb)
+ON CONFLICT (user_id, date) DO UPDATE SET
+       problem_ids = EXCLUDED.problem_ids,
+       completed_problem_ids = '[]'::jsonb,
+       started_at = now(),
+       completed_at = NULL
+RETURNING id, user_id, date, problem_ids, completed_problem_ids, started_at, completed_at`
+	var s Session
+	var pids, cids []byte
+	if err := db.QueryRow(ctx, q, userID, today, pidsJSON).Scan(
+		&s.ID, &s.UserID, &s.Date, &pids, &cids, &s.StartedAt, &s.CompletedAt,
+	); err != nil {
+		return nil, fmt.Errorf("rebuild weak session: %w", err)
+	}
+	_ = json.Unmarshal(pids, &s.ProblemIDs)
+	_ = json.Unmarshal(cids, &s.CompletedProblemIDs)
+	return &s, nil
+}
+
 func sessionNeedsProblemBuild(s Session) bool {
 	return len(s.ProblemIDs) == 0 && s.CompletedAt == nil
+}
+
+func appendUniqueIDs(base []int64, limit int, candidates []int64) []int64 {
+	if limit <= 0 || len(base) >= limit {
+		return base
+	}
+	seen := make(map[int64]bool, len(base)+len(candidates))
+	for _, id := range base {
+		seen[id] = true
+	}
+	out := append([]int64{}, base...)
+	for _, id := range candidates {
+		if id <= 0 || seen[id] {
+			continue
+		}
+		out = append(out, id)
+		seen[id] = true
+		if len(out) >= limit {
+			break
+		}
+	}
+	return out
+}
+
+func pickWeakProblemIDs(ctx context.Context, db DBTX, userID int64, n int) ([]int64, error) {
+	if n <= 0 {
+		return nil, nil
+	}
+	rows, err := db.Query(ctx, weakProblemIDsSQL(), userID, n)
+	if err != nil {
+		return nil, fmt.Errorf("pick weak: %w", err)
+	}
+	defer rows.Close()
+	var out []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		out = append(out, id)
+	}
+	return out, rows.Err()
+}
+
+func weakProblemIDsSQL() string {
+	return `
+WITH scored AS (
+  SELECT p.id AS problem_id,
+         (
+           COALESCE(up.total_fails, 0) * 20
+           + COALESCE(hist.failed_attempts, 0) * 12
+           + COALESCE(hist.tagged_attempts, 0) * 18
+           + CASE WHEN up.next_due_at IS NOT NULL AND up.next_due_at <= now() THEN 8 ELSE 0 END
+           + CASE
+               WHEN up.status = 'review' THEN 6
+               ELSE 0
+             END
+         ) AS weakness_score,
+         hist.last_attempt_at,
+         p.leetcode_frontend_id,
+         p.id
+  FROM problems p
+  LEFT JOIN user_problems up
+    ON up.user_id = $1 AND up.problem_id = p.id
+  LEFT JOIN LATERAL (
+    SELECT COUNT(*) FILTER (WHERE a.verdict <> 'AC') AS failed_attempts,
+           COUNT(*) FILTER (WHERE jsonb_array_length(a.mistake_tags) > 0) AS tagged_attempts,
+           MAX(a.completed_at) AS last_attempt_at
+      FROM attempts a
+     WHERE a.user_id = $1
+       AND a.problem_id = p.id
+  ) hist ON true
+  WHERE p.paid_only = FALSE
+    AND COALESCE(up.status, '') <> 'mastered'
+)
+SELECT problem_id
+FROM scored
+WHERE weakness_score > 0
+ORDER BY weakness_score DESC,
+         last_attempt_at ASC NULLS LAST,
+         leetcode_frontend_id::int ASC NULLS LAST,
+         id ASC
+LIMIT $2`
 }
 
 func pickDueProblemIDs(ctx context.Context, db DBTX, userID int64, n int) ([]int64, error) {
@@ -165,7 +298,7 @@ FROM user_problems up
 JOIN users u ON u.id = up.user_id
 WHERE up.user_id = $1
   AND (u.vacation_until IS NULL OR u.vacation_until <= now())
-  AND up.status NOT IN ('leech','new','mastered')
+  AND up.status = 'review'
   AND up.next_due_at IS NOT NULL
   AND up.next_due_at <= now() + interval '1 day'
 ORDER BY up.next_due_at ASC

@@ -10,12 +10,10 @@ import (
 
 // DashboardCounts is what the home page header needs in one round-trip.
 type DashboardCounts struct {
-	DueNow       int
-	DueIn24h     int
-	Learning     int
-	Review       int
-	Mastered     int
-	Leech        int
+	DueNow        int
+	DueIn24h      int
+	Review        int
+	Mastered      int
 	TotalProblems int
 }
 
@@ -24,23 +22,21 @@ func CountsForDashboard(ctx context.Context, db DBTX, userID int64) (DashboardCo
 SELECT
   COUNT(*) FILTER (WHERE up.next_due_at IS NOT NULL
                      AND up.next_due_at <= now()
-                     AND up.status NOT IN ('leech','new','mastered')
+                     AND up.status = 'review'
                      AND (u.vacation_until IS NULL OR u.vacation_until <= now())) AS due_now,
   COUNT(*) FILTER (WHERE up.next_due_at IS NOT NULL
                      AND up.next_due_at <= now() + interval '1 day'
-                     AND up.status NOT IN ('leech','new','mastered')
+                     AND up.status = 'review'
                      AND (u.vacation_until IS NULL OR u.vacation_until <= now())) AS due_24h,
-  COUNT(*) FILTER (WHERE up.status = 'learning') AS learning,
   COUNT(*) FILTER (WHERE up.status = 'review')   AS review,
   COUNT(*) FILTER (WHERE up.status = 'mastered') AS mastered,
-  COUNT(*) FILTER (WHERE up.status = 'leech')    AS leech,
-  (SELECT COUNT(*) FROM problems)               AS total_problems
+  (SELECT COUNT(*) FROM problems)                AS total_problems
 FROM user_problems up
 JOIN users u ON u.id = up.user_id
 WHERE up.user_id = $1`
 	var c DashboardCounts
 	err := db.QueryRow(ctx, q, userID).Scan(
-		&c.DueNow, &c.DueIn24h, &c.Learning, &c.Review, &c.Mastered, &c.Leech, &c.TotalProblems,
+		&c.DueNow, &c.DueIn24h, &c.Review, &c.Mastered, &c.TotalProblems,
 	)
 	if err != nil {
 		return c, fmt.Errorf("dashboard counts: %w", err)
