@@ -71,8 +71,11 @@ func (a *Authenticator) ClearSessionCookie(w http.ResponseWriter) {
 	})
 }
 
+// ErrUnverified is returned when a user's email has not been verified.
+var ErrUnverified = errors.New("auth: email not verified")
+
 // RequireWebSession enforces the web cookie. In single-user mode, any caller
-// is logged in as SingleUserID.
+// is logged in as SingleUserID. In multi-user mode, also requires email verified.
 func (a *Authenticator) RequireWebSession(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if a.SingleUserID != 0 {
@@ -89,6 +92,11 @@ func (a *Authenticator) RequireWebSession(next http.Handler) http.Handler {
 		if err != nil {
 			a.ClearSessionCookie(w)
 			http.Redirect(w, r, a.webPath("/login"), http.StatusSeeOther)
+			return
+		}
+		verifiedAt, err := store.GetEmailVerifiedAt(r.Context(), a.Store.DB(), userID)
+		if err != nil || verifiedAt == nil {
+			http.Redirect(w, r, a.webPath("/verify-pending"), http.StatusSeeOther)
 			return
 		}
 		next.ServeHTTP(w, r.WithContext(WithUserID(r.Context(), userID)))
