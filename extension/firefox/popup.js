@@ -1,4 +1,4 @@
-// LeetDrill popup. Shows next-due problem, opens it on click.
+// LeetDrill popup. Shows connection controls or today's full problem list.
 
 function send(type, payload) {
   return ldx.runtime
@@ -9,76 +9,114 @@ function send(type, payload) {
 
 const $ = (id) => document.getElementById(id);
 
+function setStatus(msg, cls) {
+  const el = $("status");
+  el.textContent = msg;
+  el.className = "status " + (cls || "");
+}
+
+async function saveBackend() {
+  await send("LEETDRILL_SAVE_CONFIG", { backendUrl: $("backend").value.trim() });
+}
+
+async function showConnectPanel(cfg) {
+  $("connectPanel").style.display = "block";
+  $("todayPanel").style.display = "none";
+  $("backend").value = (cfg && cfg.backendUrl) || "https://abhiy.xyz/leetdrill";
+  setStatus("connect with a LeetDrill code", "bad");
+}
+
+async function showToday() {
+  $("connectPanel").style.display = "none";
+  $("todayPanel").style.display = "block";
+  setStatus("loading Today...", "");
+  const res = await send("LEETDRILL_TODAY_PROBLEMS");
+  if (!res.ok) {
+    setStatus(res.error || "could not load Today", "bad");
+    return;
+  }
+  const data = res.data || {};
+  const problems = data.problems || [];
+  $("summary").textContent = `${data.completed_count || 0}/${data.total_count || problems.length} done`;
+  const list = $("problems");
+  list.textContent = "";
+  if (!problems.length) {
+    const empty = document.createElement("div");
+    empty.className = "muted";
+    empty.textContent = "No Today problems.";
+    list.appendChild(empty);
+  }
+  for (const problem of problems) {
+    const btn = document.createElement("button");
+    btn.className = "problem" + (problem.completed ? " done" : "");
+    btn.dataset.url = problem.url || `https://leetcode.com/problems/${problem.slug}/`;
+    const title = document.createElement("span");
+    title.className = "problem-title";
+    title.textContent = `${problem.leetcode_id ? `${problem.leetcode_id}. ` : ""}${problem.title || problem.slug}`;
+    const meta = document.createElement("span");
+    meta.className = "problem-meta";
+    meta.textContent = `${problem.difficulty || ""}${problem.completed ? " - done" : ""}`;
+    btn.appendChild(title);
+    btn.appendChild(meta);
+    btn.addEventListener("click", () => {
+      if (btn.dataset.url) ldx.tabs.create({ url: btn.dataset.url });
+    });
+    list.appendChild(btn);
+  }
+  setStatus("connected", "ok");
+}
+
 async function refresh() {
   const cfg = await send("LEETDRILL_GET_CONFIG");
-  const status = $("status");
   if (!cfg.ok) {
-    status.textContent = "error reading config";
-    status.classList.add("bad");
+    setStatus("error reading config", "bad");
     return;
   }
   if (!cfg.data.token) {
-    status.textContent = "checking LeetDrill login…";
-    const connected = await send("LEETDRILL_ENSURE_CONNECTED");
-    if (!connected.ok || !connected.data || !connected.data.token) {
-      status.textContent = (connected.data && connected.data.lastConnectError) ||
-        "sign in to abhiy.xyz/leetdrill in this same browser profile";
-      status.classList.add("bad");
-      return;
-    }
-    cfg.data = connected.data;
-  }
-  status.textContent = `connected to ${cfg.data.backendUrl}`;
-  status.classList.add("ok");
-
-  const next = await send("LEETDRILL_NEXT_PROBLEM");
-  if (!next.ok) {
-    $("next").style.display = "none";
-    $("open").disabled = true;
-    $("open").textContent = next.error || "no problem available";
+    await showConnectPanel(cfg.data);
     return;
   }
-  const np = next.data;
-  $("nextTitle").textContent = np.title || np.slug;
-  $("nextDifficulty").textContent = np.difficulty || "";
-  const reason = $("nextReason");
-  reason.textContent = np.reason || "";
-  reason.className = "badge " + (np.reason || "");
-  $("next").style.display = "block";
-  $("open").disabled = false;
-  $("open").dataset.url = np.url || `https://leetcode.com/problems/${np.slug}/`;
+  await showToday();
 }
 
-$("open").addEventListener("click", () => {
-  const url = $("open").dataset.url;
-  if (url) ldx.tabs.create({ url });
+$("codePage").addEventListener("click", async () => {
+  await saveBackend();
+  const res = await send("LEETDRILL_OPEN_CODE_PAGE");
+  setStatus(res.ok ? "opened code page" : `open failed: ${res.error || "unknown error"}`, res.ok ? "ok" : "bad");
 });
 
-$("sync").addEventListener("click", async () => {
-  $("sync").disabled = true;
-  const res = await send("LEETDRILL_SYNC_COOKIES");
-  $("sync").disabled = false;
-  $("sync").textContent = res.ok ? "synced ✓" : "sync failed";
-  setTimeout(() => { $("sync").textContent = "sync cookies"; }, 1500);
-});
-
-$("import").addEventListener("click", async () => {
-  $("import").disabled = true;
-  $("import").textContent = "importing…";
-  const res = await send("LEETDRILL_COLD_START", {});
-  $("import").disabled = false;
-  if (res.ok) {
-    const d = res.data || {};
-    $("import").textContent = `imported ${((d.recent_imported || 0) + (d.authed_imported || 0))}`;
-    refresh();
-  } else {
-    $("import").textContent = "import failed";
+$("testConnection").addEventListener("click", async () => {
+  await saveBackend();
+  const res = await send("LEETDRILL_TEST_CONNECTION");
+  if (!res.ok) {
+    setStatus(`test failed: ${res.error || "unknown error"}`, "bad");
+    return;
   }
-  setTimeout(() => { $("import").textContent = "import history"; }, 2500);
+  const data = res.data || {};
+  if (data.connected) {
+    setStatus("connection works", "ok");
+  } else if (data.permission === "blocked") {
+    setStatus(`browser blocked abhiy.xyz: ${data.message || "fetch failed"}`, "bad");
+  } else {
+    setStatus(data.message || "code missing or rejected", "bad");
+  }
 });
 
-$("options").addEventListener("click", () => {
-  ldx.runtime.openOptionsPage();
+$("saveToken").addEventListener("click", async () => {
+  await saveBackend();
+  const res = await send("LEETDRILL_SAVE_TOKEN", { token: $("manualToken").value.trim() });
+  if (!res.ok) {
+    setStatus(`manual connect failed: ${res.error || "unknown error"}`, "bad");
+    return;
+  }
+  $("manualToken").value = "";
+  const test = await send("LEETDRILL_TEST_CONNECTION");
+  if (test.ok && test.data && test.data.connected) {
+    await showToday();
+  } else {
+    const msg = test.data && test.data.message ? test.data.message : "run test";
+    setStatus(`manual code saved; test failed: ${msg}`, "bad");
+  }
 });
 
 refresh();

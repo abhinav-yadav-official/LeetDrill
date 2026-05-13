@@ -8,11 +8,28 @@
         font-family: system-ui, sans-serif;
         margin: 0;
         padding: 12px;
-        width: 280px;
+        width: 320px;
         background: #0f172a;
         color: #e2e8f0;
       }
       h1 { font-size: 14px; margin: 0 0 8px; }
+      label { display: block; margin: 10px 0 4px; font-size: 11px; color: #94a3b8; }
+      input, textarea {
+        width: 100%;
+        box-sizing: border-box;
+        border: 1px solid #334155;
+        border-radius: 4px;
+        background: #020617;
+        color: #e2e8f0;
+        padding: 7px 8px;
+        font-size: 12px;
+      }
+      textarea {
+        min-height: 64px;
+        resize: vertical;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 11px;
+      }
       .status {
         font-size: 12px;
         padding: 4px 8px;
@@ -22,23 +39,7 @@
       }
       .ok { color: #4ade80; }
       .bad { color: #f87171; }
-      .card {
-        background: #1e293b;
-        padding: 8px;
-        border-radius: 6px;
-        margin-bottom: 12px;
-        font-size: 12px;
-      }
-      .card .title { font-weight: 600; margin-bottom: 4px; font-size: 13px; }
-      .badge {
-        display: inline-block;
-        padding: 1px 6px;
-        border-radius: 999px;
-        font-size: 10px;
-        background: #334155;
-      }
-      .badge.review { background: #0ea5e9; color: #0c1322; }
-      .badge.new { background: #f59e0b; color: #1f1300; }
+      .muted { color: #94a3b8; }
       button {
         width: 100%;
         padding: 8px;
@@ -52,27 +53,56 @@
       button:disabled { background: #334155; cursor: default; }
       .row { display: flex; gap: 8px; margin-top: 8px; }
       .row button { flex: 1; }
-      a { color: #93c5fd; text-decoration: none; }
+      .problem-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .problem {
+        width: 100%;
+        text-align: left;
+        background: #1e293b;
+        border: 1px solid #334155;
+        color: #e2e8f0;
+      }
+      .problem.done {
+        border-color: #15803d;
+      }
+      .problem-title {
+        display: block;
+        font-weight: 600;
+        font-size: 12px;
+      }
+      .problem-meta {
+        display: block;
+        margin-top: 3px;
+        color: #94a3b8;
+        font-size: 11px;
+      }
     </style>
   </head>
   <body>
     <h1>LeetDrill</h1>
-    <div id="status" class="status">checking…</div>
-    <div id="next" class="card" style="display:none;">
-      <div class="title" id="nextTitle"></div>
-      <div>
-        <span class="badge" id="nextDifficulty"></span>
-        <span class="badge" id="nextReason"></span>
+    <div id="status" class="status">checking...</div>
+
+    <div id="connectPanel" style="display:none;">
+      <label for="backend">Backend URL</label>
+      <input id="backend" type="text" placeholder="https://abhiy.xyz/leetdrill" />
+      <div class="row">
+        <button id="codePage">open code page</button>
+        <button id="testConnection">test</button>
       </div>
+      <label for="manualToken">Manual code</label>
+      <textarea id="manualToken" placeholder="paste code from LeetDrill code page"></textarea>
+      <button id="saveToken">save manual code</button>
     </div>
-    <button id="open" disabled>open next problem</button>
-    <div class="row">
-      <button id="sync">sync cookies</button>
-      <button id="import">import history</button>
+
+    <div id="todayPanel" style="display:none;">
+      <div id="summary" class="muted"></div>
+      <div id="problems" class="problem-list"></div>
     </div>
-    <div class="row">
-      <button id="options">options</button>
-    </div>
+
     <script src="compat.js"></script>
     <script src="popup.js"></script>
   </body>

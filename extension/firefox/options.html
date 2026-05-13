@@ -40,21 +40,19 @@
       .status { margin-top: 12px; font-size: 13px; }
       .ok { color: #15803d; }
       .bad { color: #b91c1c; }
+      .muted { color: #64748b; }
     </style>
   </head>
   <body>
     <h1>LeetDrill connection</h1>
     <p class="hint">
-      Zen/Firefox uses the code method. Open the code page, sign in if asked,
-      copy the manual code, then paste it here.
+      Open the code page, sign in if asked, copy the manual code, then paste it here.
     </p>
     <label for="backend">Backend URL</label>
     <input id="backend" type="text" placeholder="https://abhiy.xyz/leetdrill" />
 
     <button id="codePage">open code page</button>
-    <button id="openApp">open LeetDrill</button>
     <button id="testConnection">test connection</button>
-    <button id="save">save url only</button>
 
     <label for="manualToken">Manual code</label>
     <textarea id="manualToken" placeholder="paste code from LeetDrill code page"></textarea>
@@ -62,8 +60,8 @@
 
     <div id="status" class="status"></div>
     <p class="hint">
-      The Firefox package requests access to abhiy.xyz and leetcode.com. If Zen
-      blocks that access, test connection will report it here.
+      LeetDrill stores a local extension token after connecting. It syncs only
+      LeetCode cookies and submission results needed for the practice tracker.
     </p>
 
     <script src="compat.js"></script>

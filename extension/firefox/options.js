@@ -1,4 +1,4 @@
-// LeetDrill Firefox/Zen options page.
+// LeetDrill options page.
 
 const $ = (id) => document.getElementById(id);
 
@@ -22,21 +22,10 @@ function setStatus(msg, cls) {
   el.className = "status " + (cls || "");
 }
 
-$("save").addEventListener("click", async () => {
-  const res = await send("LEETDRILL_SAVE_CONFIG", { backendUrl: $("backend").value.trim() });
-  setStatus(res.ok ? "saved" : "save failed", res.ok ? "ok" : "bad");
-});
-
 $("codePage").addEventListener("click", async () => {
   await send("LEETDRILL_SAVE_CONFIG", { backendUrl: $("backend").value.trim() });
   const res = await send("LEETDRILL_OPEN_CODE_PAGE");
   setStatus(res.ok ? "opened code page" : `open failed: ${res.error || "unknown error"}`, res.ok ? "ok" : "bad");
-});
-
-$("openApp").addEventListener("click", async () => {
-  await send("LEETDRILL_SAVE_CONFIG", { backendUrl: $("backend").value.trim() });
-  const res = await send("LEETDRILL_OPEN_APP");
-  setStatus(res.ok ? "opened LeetDrill" : `open failed: ${res.error || "unknown error"}`, res.ok ? "ok" : "bad");
 });
 
 $("testConnection").addEventListener("click", async () => {
@@ -48,15 +37,16 @@ $("testConnection").addEventListener("click", async () => {
   }
   const data = res.data || {};
   if (data.connected) {
-    setStatus("connection works: Zen can reach abhiy.xyz with the saved code", "ok");
+    setStatus("connection works: extension can reach abhiy.xyz with the saved code", "ok");
   } else if (data.permission === "blocked") {
-    setStatus(`Zen blocked abhiy.xyz access: ${data.message || "fetch failed"}`, "bad");
+    setStatus(`browser blocked abhiy.xyz access: ${data.message || "fetch failed"}`, "bad");
   } else {
     setStatus(`connection failed: ${data.message || "code missing or rejected"}`, "bad");
   }
 });
 
 $("saveToken").addEventListener("click", async () => {
+  await send("LEETDRILL_SAVE_CONFIG", { backendUrl: $("backend").value.trim() });
   const res = await send("LEETDRILL_SAVE_TOKEN", { token: $("manualToken").value.trim() });
   if (!res.ok) {
     setStatus(`manual connect failed: ${res.error || "unknown error"}`, "bad");

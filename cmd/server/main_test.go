@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"leetdrill/internal/models"
 	"leetdrill/internal/store"
 )
 
@@ -232,6 +233,36 @@ func TestExtensionConnectPageCarriesTokenForContentScript(t *testing.T) {
 		if !strings.Contains(body, want) {
 			t.Fatalf("extension connect page missing %q:\n%s", want, body)
 		}
+	}
+}
+
+func TestExtTodayProblemResponseFromSessionCard(t *testing.T) {
+	card := sessionCardData{
+		Problems: []sessionProblem{
+			{
+				Slug:       "unique-paths",
+				LeetcodeID: "62",
+				Title:      "Unique Paths",
+				Difficulty: models.DifficultyMedium,
+				URL:        "https://leetcode.com/problems/unique-paths/",
+				Completed:  true,
+			},
+		},
+		CompletedCount: 1,
+		TotalCount:     1,
+		Done:           true,
+	}
+
+	resp := extTodayProblemResponseFromCard(card)
+	if len(resp.Problems) != 1 {
+		t.Fatalf("len(Problems) = %d, want 1", len(resp.Problems))
+	}
+	got := resp.Problems[0]
+	if got.LeetcodeID != "62" || got.Title != "Unique Paths" || got.URL == "" || !got.Completed {
+		t.Fatalf("problem = %#v", got)
+	}
+	if resp.CompletedCount != 1 || resp.TotalCount != 1 || !resp.Done {
+		t.Fatalf("summary = %#v", resp)
 	}
 }
 

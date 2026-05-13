@@ -172,6 +172,7 @@ func (s *server) router() http.Handler {
 			r.Post("/cookies", s.handleExtCookies)
 			r.Post("/submission", s.handleExtSubmission)
 			r.Get("/next-problem", s.handleExtNextProblem)
+			r.Get("/today-problems", s.handleExtTodayProblems)
 			r.Post("/cold-start", s.handleExtColdStart)
 		})
 	})
@@ -1359,6 +1360,66 @@ func (s *server) handleExtNextProblem(w http.ResponseWriter, r *http.Request) {
 		Difficulty: np.Difficulty,
 		Reason:     np.Reason,
 	})
+}
+
+type extTodayProblem struct {
+	Slug       string            `json:"slug"`
+	LeetcodeID string            `json:"leetcode_id"`
+	Title      string            `json:"title"`
+	Difficulty models.Difficulty `json:"difficulty"`
+	URL        string            `json:"url"`
+	Completed  bool              `json:"completed"`
+}
+
+type extTodayProblemsResp struct {
+	Problems       []extTodayProblem `json:"problems"`
+	CompletedCount int               `json:"completed_count"`
+	TotalCount     int               `json:"total_count"`
+	Done           bool              `json:"done"`
+}
+
+func extTodayProblemResponseFromCard(card sessionCardData) extTodayProblemsResp {
+	resp := extTodayProblemsResp{
+		CompletedCount: card.CompletedCount,
+		TotalCount:     card.TotalCount,
+		Done:           card.Done,
+	}
+	for _, problem := range card.Problems {
+		resp.Problems = append(resp.Problems, extTodayProblem{
+			Slug:       problem.Slug,
+			LeetcodeID: problem.LeetcodeID,
+			Title:      problem.Title,
+			Difficulty: problem.Difficulty,
+			URL:        problem.URL,
+			Completed:  problem.Completed,
+		})
+	}
+	return resp
+}
+
+func (s *server) handleExtTodayProblems(w http.ResponseWriter, r *http.Request) {
+	uid := auth.UserID(r.Context())
+	sess, err := store.EnsureTodaySession(r.Context(), s.store.DB(), uid, 5)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if changed, err := store.ReconcileSessionCompletions(r.Context(), s.store.DB(), uid, sess.ID); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	} else if changed {
+		sess, err = store.GetSession(r.Context(), s.store.DB(), uid, sess.ID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+	card, err := s.sessionCard(r.Context(), uid, sess, "")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, http.StatusOK, extTodayProblemResponseFromCard(card))
 }
 
 type coldStartReq struct {

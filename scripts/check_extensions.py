@@ -64,10 +64,12 @@ def main():
     require("LEETDRILL_OPEN_APP" in background, "background must open LeetDrill through tabs API")
     require("LEETDRILL_TEST_CONNECTION" in background, "background must expose backend permission/auth test")
     require("sender.tab.url" in background, "background must trust Firefox content-script sender tab URLs")
-    require("LEETDRILL_CONNECT_STATUS" in options, "options must show browser-login diagnostics")
     require("LEETDRILL_SAVE_TOKEN" in options, "options must expose manual token fallback")
-    require("LEETDRILL_OPEN_APP" in options, "options must make LeetDrill link clickable")
+    require("LEETDRILL_OPEN_APP" not in options, "options must not show open LeetDrill link")
     require("LEETDRILL_TEST_CONNECTION" in options, "options must expose backend permission/auth test")
+    require("LEETDRILL_OPEN_WEB_CONNECT" not in options, "options must not use browser-login connect")
+    require("LEETDRILL_HANDSHAKE" not in options, "options must not expose login/password connect")
+    require("LEETDRILL_OPEN_CODE_PAGE" in options, "options must expose code page link")
     require("LEETDRILL_OPEN_WEB_CONNECT" not in firefox_options, "firefox options must not use browser-login connect")
     require("LEETDRILL_HANDSHAKE" not in firefox_options, "firefox options must not expose login/password connect")
     require("LEETDRILL_OPEN_CODE_PAGE" in firefox_options, "firefox options must expose code page link")
@@ -77,9 +79,15 @@ def main():
     require("LEETDRILL_WEB_CONNECT_TOKEN" in content, "content script must listen for web connect broadcasts")
     require("https://abhiy.xyz/leetdrill/extension/connect*" in str(chrome.get("content_scripts", [])), "chrome must inject on web connect page")
     require("https://abhiy.xyz/leetdrill/extension/connect*" in str(firefox.get("content_scripts", [])), "firefox must inject on web connect page")
+    popup_html = (EXT / "popup.html").read_text()
+    popup_js = (EXT / "popup.js").read_text()
+    require("sync cookies" not in popup_html and "import history" not in popup_html, "popup must not show manual sync/import buttons")
+    require("LEETDRILL_TODAY_PROBLEMS" in background and "LEETDRILL_TODAY_PROBLEMS" in popup_js, "popup must load all Today problems")
+    require("LEETDRILL_OPEN_CODE_PAGE" in popup_js and "LEETDRILL_SAVE_TOKEN" in popup_js, "popup must expose code connect when disconnected")
 
-    for name in ["compat.js", "inject.js", "popup.html"]:
+    for name in ["compat.js", "inject.js", "popup.html", "options.html"]:
         require((EXT / "firefox" / name).read_text() == (EXT / name).read_text(), f"firefox {name} must mirror shared {name}")
+    require((EXT / "firefox" / "options.js").read_text() == (EXT / "options.js").read_text(), "firefox options.js must mirror shared options.js")
     require("use browser login" not in (EXT / "firefox" / "options.html").read_text(), "firefox options must not show browser-login UI")
     require("Manual code" in (EXT / "firefox" / "options.html").read_text(), "firefox options must show manual code UI")
 

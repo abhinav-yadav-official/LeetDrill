@@ -169,6 +169,9 @@ async function saveExtensionTokenFromPage(token, sender) {
   if (!cleanToken) throw new Error("extension token missing");
   await saveConfig({ token: cleanToken });
   await ldx.action.setBadgeText({ text: "" });
+  bootstrapAfterConnect().catch((err) => {
+    console.warn("[leetdrill] post-connect bootstrap failed:", err.message || String(err));
+  });
 }
 
 async function saveManualExtensionToken(token) {
@@ -176,6 +179,9 @@ async function saveManualExtensionToken(token) {
   if (!cleanToken) throw new Error("extension token missing");
   await saveConfig({ token: cleanToken });
   await ldx.action.setBadgeText({ text: "" });
+  bootstrapAfterConnect().catch((err) => {
+    console.warn("[leetdrill] post-connect bootstrap failed:", err.message || String(err));
+  });
 }
 
 async function openWebConnect() {
@@ -207,6 +213,23 @@ async function testConnection() {
   } catch (err) {
     return { connected: false, permission: "blocked", message: err.message || String(err) };
   }
+}
+
+async function bootstrapAfterConnect() {
+  const result = { cookies_synced: false, history_imported: false };
+  try {
+    await syncCookies();
+    result.cookies_synced = true;
+  } catch (err) {
+    result.cookies_error = err.message || String(err);
+  }
+  try {
+    await apiPost("/api/ext/cold-start", {});
+    result.history_imported = true;
+  } catch (err) {
+    result.history_error = err.message || String(err);
+  }
+  return result;
 }
 
 async function handshake({ email, password } = {}) {
@@ -351,6 +374,10 @@ ldx.runtime.onMessage.addListener((msg, sender) =>
         }
         case "LEETDRILL_NEXT_PROBLEM": {
           const data = await apiGet("/api/ext/next-problem");
+          return { ok: true, data };
+        }
+        case "LEETDRILL_TODAY_PROBLEMS": {
+          const data = await apiGet("/api/ext/today-problems");
           return { ok: true, data };
         }
         case "LEETDRILL_COLD_START": {
