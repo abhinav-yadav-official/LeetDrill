@@ -53,6 +53,35 @@ Then open:
 - Today page: http://localhost:8080/session/today
 - Extension options: `chrome://extensions` → Load unpacked → `extension/`
 
+## Deployment
+
+`scripts/deploy_server.sh` bootstraps or updates an Ubuntu-style VPS: packages,
+source sync, `.env`, tests, build, migrations, systemd service, nginx proxy,
+optional TLS via certbot, and extension share files.
+
+Current production defaults:
+
+```sh
+task deploy:server -- abhiy.xyz
+```
+
+Useful first-run overrides:
+
+```sh
+LETSENCRYPT_EMAIL=you@example.com task deploy:server -- new-host.example.com
+
+SETUP_POSTGRES=true \
+DB_NAME=leetdrill \
+DB_USER=leetdrill \
+DB_PASSWORD='change-me' \
+LETSENCRYPT_EMAIL=you@example.com \
+task deploy:server -- new-host.example.com
+```
+
+By default the script uploads local `.env` only when the remote `.env` is
+missing. Use `UPLOAD_ENV=true` to replace it, or `UPLOAD_ENV=false` to always
+preserve or generate the remote `.env`.
+
 Cold-start import:
 
 - Web: Settings → Import LeetCode history.

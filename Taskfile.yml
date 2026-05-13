@@ -46,6 +46,11 @@ tasks:
     cmds:
       - bash scripts/deploy_extension_share.sh {{.CLI_ARGS}}
 
+  deploy:server:
+    desc: "Bootstrap/update the VPS server, nginx, systemd service, migrations, and extension share."
+    cmds:
+      - bash scripts/deploy_server.sh {{.CLI_ARGS}}
+
   vet:
     desc: "go vet."
     cmds:
