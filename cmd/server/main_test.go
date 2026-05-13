@@ -11,7 +11,7 @@ import (
 )
 
 func TestLoginPageUsesSplitIntroLayout(t *testing.T) {
-	body := fmt.Sprintf(loginPage, "invalid email or password.", "/leetdrill/login", "/leetdrill/extension/connect", "/leetdrill/signup")
+	body := fmt.Sprintf(loginPage, "invalid email or password.", "/leetdrill/login", "/leetdrill/extension/connect", "/leetdrill/forgot", "/leetdrill/signup")
 
 	for _, want := range []string{
 		`<meta name="viewport" content="width=device-width, initial-scale=1">`,

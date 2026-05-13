@@ -9,6 +9,7 @@ import (
 	"html"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -199,6 +200,13 @@ func (s *server) router() http.Handler {
 	r.Post("/signup", s.handleSignupSubmit)
 	r.Post("/logout", s.handleLogout)
 	r.Get("/extension/connect", s.handleExtensionConnect)
+	r.Get("/verify-pending", s.handleVerifyPending)
+	r.Get("/verify", s.handleVerifyEmail)
+	r.Post("/resend-verify", s.handleResendVerify)
+	r.Get("/forgot", s.handleForgotPage)
+	r.Post("/forgot", s.handleForgotSubmit)
+	r.Get("/reset", s.handleResetPage)
+	r.Post("/reset", s.handleResetSubmit)
 
 	r.Group(func(r chi.Router) {
 		r.Use(s.authmw.RequireWebSession)
@@ -527,7 +535,11 @@ func (s *server) handleLoginPage(w http.ResponseWriter, r *http.Request) {
 	if raw := strings.TrimSpace(r.URL.Query().Get("next")); raw != "" {
 		next = s.safeLoginNext(raw)
 	}
-	_, _ = fmt.Fprintf(w, loginPage, "sign in to continue.", s.appPath("/login"), html.EscapeString(next), s.appPath("/forgot"), s.appPath("/signup"))
+	msg := "sign in to continue."
+	if r.URL.Query().Get("reset") == "1" {
+		msg = "Password updated. Log in with your new password."
+	}
+	_, _ = fmt.Fprintf(w, loginPage, html.EscapeString(msg), s.appPath("/login"), html.EscapeString(next), s.appPath("/forgot"), s.appPath("/signup"))
 }
 
 func (s *server) handleLoginSubmit(w http.ResponseWriter, r *http.Request) {
@@ -613,13 +625,24 @@ func (s *server) handleSignupSubmit(w http.ResponseWriter, r *http.Request) {
 		_, _ = fmt.Fprintf(w, signupPage, "could not create account.", s.appPath("/signup"), s.appPath("/login"))
 		return
 	}
-	token, err := s.authmw.IssueWebToken(r.Context(), userID)
+	vtok, vhash, err := auth.NewToken()
 	if err != nil {
-		http.Error(w, "issue token", http.StatusInternalServerError)
+		log.Printf("signup: new token: %v", err)
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = fmt.Fprintf(w, signupPage, "an error occurred. please try again.", s.appPath("/signup"), s.appPath("/login"))
 		return
 	}
-	s.authmw.SetSessionCookie(w, token)
-	http.Redirect(w, r, s.appPath("/"), http.StatusSeeOther)
+	if err := store.CreateEmailToken(r.Context(), s.store.DB(), userID, store.EmailTokenVerify,
+		vhash, time.Now().Add(6*time.Hour)); err != nil {
+		log.Printf("signup: create email token: %v", err)
+	}
+	if s.mailer != nil {
+		if err := s.mailer.SendVerify(email, vtok); err != nil {
+			log.Printf("signup: send verify email to %s: %v", email, err)
+		}
+	}
+	q2 := url.Values{"email": {email}}
+	http.Redirect(w, r, s.appPath("/verify-pending")+"?"+q2.Encode(), http.StatusSeeOther)
 }
 
 func validateSignupForm(email, password, confirm string) (string, string) {
@@ -634,6 +657,164 @@ func validateSignupForm(email, password, confirm string) (string, string) {
 	default:
 		return email, ""
 	}
+}
+
+func (s *server) handleVerifyPending(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	email := r.URL.Query().Get("email")
+	msg := ""
+	if r.URL.Query().Get("resent") == "1" {
+		msg = "Verification email resent."
+	}
+	_, _ = fmt.Fprintf(w, verifyPendingPage,
+		html.EscapeString(email),
+		html.EscapeString(msg),
+		s.appPath("/resend-verify"),
+		html.EscapeString(email),
+		s.appPath("/login"),
+	)
+}
+
+func (s *server) handleVerifyEmail(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	tok := r.URL.Query().Get("token")
+	if tok == "" {
+		_, _ = fmt.Fprintf(w, verifyDonePage,
+			"Invalid link", "Invalid verification link",
+			"The link is missing or malformed.",
+			s.appPath("/verify-pending"), "Try again",
+		)
+		return
+	}
+	hash, err := auth.HashToken(tok)
+	if err != nil {
+		_, _ = fmt.Fprintf(w, verifyDonePage,
+			"Invalid link", "Invalid verification link",
+			"The link is malformed.",
+			s.appPath("/verify-pending"), "Try again",
+		)
+		return
+	}
+	userID, err := store.ConsumeEmailToken(r.Context(), s.store.DB(), hash, store.EmailTokenVerify)
+	if err != nil {
+		_, _ = fmt.Fprintf(w, verifyDonePage,
+			"Link expired", "Verification link expired or already used",
+			"Request a new link below.",
+			s.appPath("/verify-pending"), "Resend verification email",
+		)
+		return
+	}
+	if err := store.MarkEmailVerified(r.Context(), s.store.DB(), userID); err != nil {
+		log.Printf("verify email: mark verified user %d: %v", userID, err)
+	}
+	_, _ = fmt.Fprintf(w, verifyDonePage,
+		"Email verified", "Email verified",
+		"Your email is confirmed. You can now log in.",
+		s.appPath("/login"), "Log in",
+	)
+}
+
+func (s *server) handleResendVerify(w http.ResponseWriter, r *http.Request) {
+	ip, _, _ := net.SplitHostPort(r.RemoteAddr)
+	if !s.resendLimiter.Allow(ip) {
+		http.Error(w, "too many requests", http.StatusTooManyRequests)
+		return
+	}
+	email := strings.TrimSpace(strings.ToLower(r.FormValue("email")))
+	userID, verifiedAt, err := store.GetUserIDByEmail(r.Context(), s.store.DB(), email)
+	if err == nil && verifiedAt == nil {
+		tok, hash, err := auth.NewToken()
+		if err == nil {
+			_ = store.CreateEmailToken(r.Context(), s.store.DB(), userID, store.EmailTokenVerify,
+				hash, time.Now().Add(6*time.Hour))
+			if s.mailer != nil {
+				if err := s.mailer.SendVerify(email, tok); err != nil {
+					log.Printf("resend verify: %v", err)
+				}
+			}
+		}
+	}
+	q := url.Values{"email": {email}, "resent": {"1"}}
+	http.Redirect(w, r, s.appPath("/verify-pending")+"?"+q.Encode(), http.StatusSeeOther)
+}
+
+func (s *server) handleForgotPage(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	msg := ""
+	if r.URL.Query().Get("sent") == "1" {
+		msg = "If an account with that email exists, a reset link has been sent."
+	}
+	_, _ = fmt.Fprintf(w, forgotPage, html.EscapeString(msg), s.appPath("/forgot"), s.appPath("/login"))
+}
+
+func (s *server) handleForgotSubmit(w http.ResponseWriter, r *http.Request) {
+	email := strings.TrimSpace(strings.ToLower(r.FormValue("email")))
+	userID, _, err := store.GetUserIDByEmail(r.Context(), s.store.DB(), email)
+	if err == nil {
+		tok, hash, err := auth.NewToken()
+		if err == nil {
+			_ = store.CreateEmailToken(r.Context(), s.store.DB(), userID, store.EmailTokenReset,
+				hash, time.Now().Add(6*time.Hour))
+			if s.mailer != nil {
+				if err := s.mailer.SendReset(email, tok); err != nil {
+					log.Printf("forgot: send reset to %s: %v", email, err)
+				}
+			}
+		}
+	}
+	http.Redirect(w, r, s.appPath("/forgot")+"?sent=1", http.StatusSeeOther)
+}
+
+func (s *server) handleResetPage(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	tok := r.URL.Query().Get("token")
+	if tok == "" {
+		http.Redirect(w, r, s.appPath("/forgot"), http.StatusSeeOther)
+		return
+	}
+	_, _ = fmt.Fprintf(w, resetPage, "", s.appPath("/reset"), html.EscapeString(tok))
+}
+
+func (s *server) handleResetSubmit(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	tok := r.FormValue("token")
+	password := r.FormValue("password")
+	confirm := r.FormValue("confirm_password")
+
+	showErr := func(msg string) {
+		_, _ = fmt.Fprintf(w, resetPage, html.EscapeString(msg), s.appPath("/reset"), html.EscapeString(tok))
+	}
+
+	if len(password) < 8 {
+		showErr("Password must be at least 8 characters.")
+		return
+	}
+	if password != confirm {
+		showErr("Passwords do not match.")
+		return
+	}
+	hash, err := auth.HashToken(tok)
+	if err != nil {
+		showErr("Invalid reset link.")
+		return
+	}
+	userID, err := store.ConsumeEmailToken(r.Context(), s.store.DB(), hash, store.EmailTokenReset)
+	if err != nil {
+		showErr("Reset link has expired or already been used. Request a new one.")
+		return
+	}
+	pwHash, err := auth.HashPassword(password)
+	if err != nil {
+		log.Printf("reset: hash password: %v", err)
+		showErr("An error occurred. Please try again.")
+		return
+	}
+	if err := store.SetPasswordHash(r.Context(), s.store.DB(), userID, pwHash); err != nil {
+		log.Printf("reset: set password: %v", err)
+		showErr("An error occurred. Please try again.")
+		return
+	}
+	http.Redirect(w, r, s.appPath("/login")+"?reset=1", http.StatusSeeOther)
 }
 
 func (s *server) handleExtensionConnect(w http.ResponseWriter, r *http.Request) {
