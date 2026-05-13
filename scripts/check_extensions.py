@@ -45,10 +45,13 @@ def main():
     require((EXT / "STORE_LISTING.md").exists(), "store listing notes missing")
     require((EXT / "PRIVACY.md").exists(), "privacy notes missing")
 
-    for script in ["background.js", "content.js", "popup.js", "options.js"]:
+    for script in ["background.js", "content.js", "popup.js"]:
         text = (EXT / script).read_text()
         require("ldx." in text, f"{script} must use extension compat wrapper")
         require((EXT / "firefox" / script).read_text() == text, f"firefox {script} must mirror shared {script}")
+    require("ldx." in (EXT / "options.js").read_text(), "options.js must use extension compat wrapper")
+    firefox_options = (EXT / "firefox" / "options.js").read_text()
+    require("ldx." in firefox_options, "firefox options.js must use extension compat wrapper")
 
     compat = (EXT / "compat.js").read_text()
     background = (EXT / "background.js").read_text()
@@ -65,14 +68,20 @@ def main():
     require("LEETDRILL_SAVE_TOKEN" in options, "options must expose manual token fallback")
     require("LEETDRILL_OPEN_APP" in options, "options must make LeetDrill link clickable")
     require("LEETDRILL_TEST_CONNECTION" in options, "options must expose backend permission/auth test")
+    require("LEETDRILL_OPEN_WEB_CONNECT" not in firefox_options, "firefox options must not use browser-login connect")
+    require("LEETDRILL_HANDSHAKE" not in firefox_options, "firefox options must not expose login/password connect")
+    require("LEETDRILL_OPEN_CODE_PAGE" in firefox_options, "firefox options must expose code page link")
+    require("LEETDRILL_SAVE_TOKEN" in firefox_options, "firefox options must keep manual code fallback")
     content = (EXT / "content.js").read_text()
     require("LEETDRILL_EXTENSION_TOKEN" in content, "content script must accept web connect token")
     require("LEETDRILL_WEB_CONNECT_TOKEN" in content, "content script must listen for web connect broadcasts")
     require("https://abhiy.xyz/leetdrill/extension/connect*" in str(chrome.get("content_scripts", [])), "chrome must inject on web connect page")
     require("https://abhiy.xyz/leetdrill/extension/connect*" in str(firefox.get("content_scripts", [])), "firefox must inject on web connect page")
 
-    for name in ["compat.js", "inject.js", "popup.html", "options.html"]:
+    for name in ["compat.js", "inject.js", "popup.html"]:
         require((EXT / "firefox" / name).read_text() == (EXT / name).read_text(), f"firefox {name} must mirror shared {name}")
+    require("use browser login" not in (EXT / "firefox" / "options.html").read_text(), "firefox options must not show browser-login UI")
+    require("Manual code" in (EXT / "firefox" / "options.html").read_text(), "firefox options must show manual code UI")
 
     for icon in ["icon16.png", "icon48.png", "icon128.png"]:
         require((EXT / "icons" / icon).exists(), f"chrome icon missing: {icon}")

@@ -10,7 +10,7 @@ import (
 )
 
 func TestLoginPageUsesSplitIntroLayout(t *testing.T) {
-	body := fmt.Sprintf(loginPage, "invalid email or password.", "/leetdrill/login", "/leetdrill/signup")
+	body := fmt.Sprintf(loginPage, "invalid email or password.", "/leetdrill/login", "/leetdrill/extension/connect", "/leetdrill/signup")
 
 	for _, want := range []string{
 		`<meta name="viewport" content="width=device-width, initial-scale=1">`,
@@ -18,12 +18,34 @@ func TestLoginPageUsesSplitIntroLayout(t *testing.T) {
 		`Track recent submissions, review timing, and difficult problems from one focused workspace.`,
 		`invalid email or password.`,
 		`action="/leetdrill/login"`,
+		`name="next" value="/leetdrill/extension/connect"`,
 		`href="/leetdrill/signup"`,
 		`type="email"`,
 		`type="password"`,
 	} {
 		if !strings.Contains(body, want) {
 			t.Fatalf("login page missing %q:\n%s", want, body)
+		}
+	}
+}
+
+func TestSafeLoginNext(t *testing.T) {
+	s := &server{basePath: "/leetdrill"}
+	tests := []struct {
+		raw  string
+		want string
+	}{
+		{"", "/leetdrill/"},
+		{"/leetdrill/extension/connect", "/leetdrill/extension/connect"},
+		{"/leetdrill/problems?page=2", "/leetdrill/problems?page=2"},
+		{"/other", "/leetdrill/"},
+		{"https://evil.example/path", "/leetdrill/"},
+		{"//evil.example/path", "/leetdrill/"},
+	}
+
+	for _, tt := range tests {
+		if got := s.safeLoginNext(tt.raw); got != tt.want {
+			t.Fatalf("safeLoginNext(%q) = %q, want %q", tt.raw, got, tt.want)
 		}
 	}
 }

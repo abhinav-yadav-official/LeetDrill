@@ -143,6 +143,7 @@ func (s *server) router() http.Handler {
 	r.Get("/signup", s.handleSignupPage)
 	r.Post("/signup", s.handleSignupSubmit)
 	r.Post("/logout", s.handleLogout)
+	r.Get("/extension/connect", s.handleExtensionConnect)
 
 	r.Group(func(r chi.Router) {
 		r.Use(s.authmw.RequireWebSession)
@@ -159,7 +160,6 @@ func (s *server) router() http.Handler {
 		r.Get("/settings", s.handleSettings)
 		r.Post("/settings/cold-start", s.handleSettingsColdStart)
 		r.Post("/settings/vacation", s.handleSettingsVacation)
-		r.Get("/extension/connect", s.handleExtensionConnect)
 	})
 
 	r.Route("/api/ext", func(r chi.Router) {
@@ -226,6 +226,7 @@ const loginPage = `<!doctype html>
           <p class="mt-2 text-sm text-zinc-600" aria-live="polite">%s</p>
         </div>
         <form class="mt-6 space-y-4" method="post" action="%s">
+          <input type="hidden" name="next" value="%s">
           <div>
             <label class="block text-sm font-medium text-zinc-700" for="email">Email</label>
             <input id="email" class="mt-2 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10" type="email" name="email" autocomplete="email" autofocus required>
@@ -354,9 +355,13 @@ func renderExtensionConnectPage(token string) string {
 	return fmt.Sprintf(extensionConnectPage, escaped, escaped)
 }
 
-func (s *server) handleLoginPage(w http.ResponseWriter, _ *http.Request) {
+func (s *server) handleLoginPage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, _ = fmt.Fprintf(w, loginPage, "sign in to continue.", s.appPath("/login"), s.appPath("/signup"))
+	next := ""
+	if raw := strings.TrimSpace(r.URL.Query().Get("next")); raw != "" {
+		next = s.safeLoginNext(raw)
+	}
+	_, _ = fmt.Fprintf(w, loginPage, "sign in to continue.", s.appPath("/login"), html.EscapeString(next), s.appPath("/signup"))
 }
 
 func (s *server) handleLoginSubmit(w http.ResponseWriter, r *http.Request) {
@@ -374,12 +379,12 @@ func (s *server) handleLoginSubmit(w http.ResponseWriter, r *http.Request) {
 	const q = `SELECT id, password_hash FROM users WHERE email = $1`
 	if err := s.store.DB().QueryRow(r.Context(), q, email).Scan(&userID, &hash); err != nil {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		_, _ = fmt.Fprintf(w, loginPage, "invalid email or password.", s.appPath("/login"), s.appPath("/signup"))
+		_, _ = fmt.Fprintf(w, loginPage, "invalid email or password.", s.appPath("/login"), html.EscapeString(s.safeLoginNext(r.FormValue("next"))), s.appPath("/signup"))
 		return
 	}
 	if err := auth.VerifyPassword(hash, pw); err != nil {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		_, _ = fmt.Fprintf(w, loginPage, "invalid email or password.", s.appPath("/login"), s.appPath("/signup"))
+		_, _ = fmt.Fprintf(w, loginPage, "invalid email or password.", s.appPath("/login"), html.EscapeString(s.safeLoginNext(r.FormValue("next"))), s.appPath("/signup"))
 		return
 	}
 	token, err := s.authmw.IssueWebToken(r.Context(), userID)
@@ -388,7 +393,23 @@ func (s *server) handleLoginSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.authmw.SetSessionCookie(w, token)
-	http.Redirect(w, r, s.appPath("/"), http.StatusSeeOther)
+	http.Redirect(w, r, s.safeLoginNext(r.FormValue("next")), http.StatusSeeOther)
+}
+
+func (s *server) safeLoginNext(raw string) string {
+	raw = strings.TrimSpace(raw)
+	fallback := s.appPath("/")
+	if raw == "" || strings.HasPrefix(raw, "//") {
+		return fallback
+	}
+	u, err := url.Parse(raw)
+	if err != nil || u.IsAbs() || u.Path == "" {
+		return fallback
+	}
+	if !strings.HasPrefix(u.Path, s.appPath("/")) {
+		return fallback
+	}
+	return u.RequestURI()
 }
 
 func (s *server) handleSignupPage(w http.ResponseWriter, _ *http.Request) {
@@ -450,9 +471,10 @@ func validateSignupForm(email, password, confirm string) (string, string) {
 }
 
 func (s *server) handleExtensionConnect(w http.ResponseWriter, r *http.Request) {
-	userID := auth.UserID(r.Context())
-	if userID == 0 {
-		http.Error(w, "missing web session", http.StatusUnauthorized)
+	userID, ok := s.extensionConnectUserID(r)
+	if !ok {
+		loginURL := s.appPath("/login") + "?next=" + url.QueryEscape(s.appPath("/extension/connect"))
+		http.Redirect(w, r, loginURL, http.StatusSeeOther)
 		return
 	}
 	token, err := s.authmw.IssueExtToken(r.Context(), userID)
@@ -462,6 +484,25 @@ func (s *server) handleExtensionConnect(w http.ResponseWriter, r *http.Request) 
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_, _ = io.WriteString(w, renderExtensionConnectPage(token))
+}
+
+func (s *server) extensionConnectUserID(r *http.Request) (int64, bool) {
+	if s.authmw.SingleUserID != 0 {
+		return s.authmw.SingleUserID, true
+	}
+	cookie, err := r.Cookie(auth.CookieName)
+	if err != nil || strings.TrimSpace(cookie.Value) == "" {
+		return 0, false
+	}
+	hash, err := auth.HashToken(cookie.Value)
+	if err != nil {
+		return 0, false
+	}
+	userID, err := store.LookupAuthSession(r.Context(), s.store.DB(), store.AuthKindWeb, hash)
+	if err != nil {
+		return 0, false
+	}
+	return userID, true
 }
 
 func (s *server) handleLogout(w http.ResponseWriter, r *http.Request) {

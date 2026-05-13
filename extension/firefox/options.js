@@ -1,4 +1,4 @@
-// LeetDrill options page.
+// LeetDrill Firefox/Zen options page.
 
 const $ = (id) => document.getElementById(id);
 
@@ -22,33 +22,15 @@ function setStatus(msg, cls) {
   el.className = "status " + (cls || "");
 }
 
-function statusText(data) {
-  if (!data) return "connection status unavailable";
-  if (data.token) return `connected to ${data.backendUrl}`;
-  if (data.webSession) {
-    const path = data.cookiePath ? ` at ${data.cookiePath}` : "";
-    return `browser login found${path}; click use browser login`;
-  }
-  return "no browser login cookie found; sign in to abhiy.xyz/leetdrill in this same browser profile";
-}
-
-async function refreshStatus() {
-  const res = await send("LEETDRILL_CONNECT_STATUS");
-  if (!res.ok) {
-    setStatus(res.error || "connection status unavailable", "bad");
-    return;
-  }
-  setStatus(statusText(res.data), res.data.token || res.data.webSession ? "ok" : "bad");
-}
-
 $("save").addEventListener("click", async () => {
   const res = await send("LEETDRILL_SAVE_CONFIG", { backendUrl: $("backend").value.trim() });
   setStatus(res.ok ? "saved" : "save failed", res.ok ? "ok" : "bad");
 });
 
-$("check").addEventListener("click", async () => {
+$("codePage").addEventListener("click", async () => {
   await send("LEETDRILL_SAVE_CONFIG", { backendUrl: $("backend").value.trim() });
-  await refreshStatus();
+  const res = await send("LEETDRILL_OPEN_CODE_PAGE");
+  setStatus(res.ok ? "opened code page" : `open failed: ${res.error || "unknown error"}`, res.ok ? "ok" : "bad");
 });
 
 $("openApp").addEventListener("click", async () => {
@@ -66,51 +48,28 @@ $("testConnection").addEventListener("click", async () => {
   }
   const data = res.data || {};
   if (data.connected) {
-    setStatus("connection works: Zen can reach abhiy.xyz with the saved token", "ok");
+    setStatus("connection works: Zen can reach abhiy.xyz with the saved code", "ok");
   } else if (data.permission === "blocked") {
     setStatus(`Zen blocked abhiy.xyz access: ${data.message || "fetch failed"}`, "bad");
   } else {
-    setStatus(`connection failed: ${data.message || "token missing or rejected"}`, "bad");
+    setStatus(`connection failed: ${data.message || "code missing or rejected"}`, "bad");
   }
 });
 
 $("saveToken").addEventListener("click", async () => {
   const res = await send("LEETDRILL_SAVE_TOKEN", { token: $("manualToken").value.trim() });
-  if (res.ok) {
-    $("manualToken").value = "";
-    const test = await send("LEETDRILL_TEST_CONNECTION");
-    if (test.ok && test.data && test.data.connected) {
-      setStatus("connected - manual code saved and verified", "ok");
-    } else {
-      setStatus(`manual code saved; test failed: ${test.data && test.data.message ? test.data.message : "run test connection"}`, "bad");
-    }
-  } else {
+  if (!res.ok) {
     setStatus(`manual connect failed: ${res.error || "unknown error"}`, "bad");
+    return;
   }
-});
-
-$("connect").addEventListener("click", async () => {
-  await send("LEETDRILL_SAVE_CONFIG", { backendUrl: $("backend").value.trim() });
-  const payload = {};
-  const email = $("email").value.trim();
-  const pw = $("password").value;
-  if (email && pw) {
-    payload.email = email;
-    payload.password = pw;
-    const res = await send("LEETDRILL_HANDSHAKE", payload);
-    if (res.ok) {
-      setStatus("connected - token saved", "ok");
-      $("password").value = "";
-    } else {
-      setStatus(`connect failed: ${res.error || "unknown error"}`, "bad");
-    }
+  $("manualToken").value = "";
+  const test = await send("LEETDRILL_TEST_CONNECTION");
+  if (test.ok && test.data && test.data.connected) {
+    setStatus("connected - manual code saved and verified", "ok");
   } else {
-    const res = await send("LEETDRILL_OPEN_WEB_CONNECT");
-    setStatus(
-      res.ok ? "opened LeetDrill connect tab" : `connect failed: ${res.error || "unknown error"}`,
-      res.ok ? "ok" : "bad"
-    );
+    const msg = test.data && test.data.message ? test.data.message : "run test connection";
+    setStatus(`manual code saved; test failed: ${msg}`, "bad");
   }
 });
 
-load().then(refreshStatus);
+load();

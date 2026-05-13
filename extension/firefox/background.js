@@ -329,6 +329,9 @@ ldx.runtime.onMessage.addListener((msg, sender) =>
         case "LEETDRILL_OPEN_WEB_CONNECT": {
           return { ok: true, data: await openWebConnect() };
         }
+        case "LEETDRILL_OPEN_CODE_PAGE": {
+          return { ok: true, data: await openWebConnect() };
+        }
         case "LEETDRILL_OPEN_APP": {
           return { ok: true, data: await openApp() };
         }
