@@ -111,6 +111,11 @@ $("codePage").addEventListener("click", async () => {
   setStatus(res.ok ? "opened login code page" : `open failed: ${res.error || "unknown error"}`, res.ok ? "ok" : "bad");
 });
 
+$("github").addEventListener("click", async () => {
+  const res = await send("LEETDRILL_OPEN_GITHUB");
+  setStatus(res.ok ? "opened GitHub" : `open failed: ${res.error || "unknown error"}`, res.ok ? "ok" : "bad");
+});
+
 $("manualToken").addEventListener("input", scheduleTokenSave);
 $("manualToken").addEventListener("paste", scheduleTokenSave);
 

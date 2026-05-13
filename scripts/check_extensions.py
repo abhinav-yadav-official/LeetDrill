@@ -63,6 +63,7 @@ def main():
     require("LEETDRILL_SAVE_TOKEN" in background, "background must support manual token fallback")
     require("LEETDRILL_OPEN_APP" in background, "background must open LeetDrill through tabs API")
     require("LEETDRILL_TEST_CONNECTION" in background, "background must expose backend permission/auth test")
+    require("LEETDRILL_OPEN_GITHUB" in background, "background must expose GitHub link")
     require("sender.tab.url" in background, "background must trust Firefox content-script sender tab URLs")
     require("LEETDRILL_SAVE_TOKEN" in options, "options must expose manual token fallback")
     require("LEETDRILL_OPEN_APP" not in options, "options must not show open LeetDrill link")
@@ -89,6 +90,8 @@ def main():
     require("testConnection" not in popup_html and "testConnection" not in (EXT / "options.html").read_text(), "popup/options must not show test buttons")
     require("Click here to obtain login code" in popup_html and "Click here to obtain login code" in (EXT / "options.html").read_text(), "connect button text must point to login code")
     require("Login Token" in popup_html and "Login Token" in (EXT / "options.html").read_text(), "manual code label must be Login Token")
+    require("GitHub" in popup_html and "GitHub" in (EXT / "options.html").read_text(), "popup/options must mention GitHub")
+    require("LEETDRILL_OPEN_GITHUB" in popup_js and "LEETDRILL_OPEN_GITHUB" in options, "popup/options must open GitHub link")
     require("scheduleTokenSave" in popup_js and "scheduleTokenSave" in options, "popup/options must auto-save pasted login tokens")
 
     for name in ["compat.js", "inject.js", "popup.html", "options.html"]:

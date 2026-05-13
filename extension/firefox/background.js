@@ -198,6 +198,12 @@ async function openApp() {
   return { url };
 }
 
+async function openGithub() {
+  const url = "https://github.com/abhinav-yadav-official/leetdrill";
+  await ldx.tabs.create({ url });
+  return { url };
+}
+
 async function testConnection() {
   const { backendUrl, token } = await getConfig();
   if (!token) {
@@ -357,6 +363,9 @@ ldx.runtime.onMessage.addListener((msg, sender) =>
         }
         case "LEETDRILL_OPEN_APP": {
           return { ok: true, data: await openApp() };
+        }
+        case "LEETDRILL_OPEN_GITHUB": {
+          return { ok: true, data: await openGithub() };
         }
         case "LEETDRILL_TEST_CONNECTION": {
           return { ok: true, data: await testConnection() };
