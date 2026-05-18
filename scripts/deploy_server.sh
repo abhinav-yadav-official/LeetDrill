@@ -234,9 +234,24 @@ server {
     listen [::]:80;
     server_name $server_names;
     root /var/www/html;
+    error_page 403 /403.html;
+    error_page 404 /404.html;
+    error_page 500 502 503 504 /50x.html;
 
     location /.well-known/acme-challenge/ {
         root /var/www/letsencrypt;
+    }
+
+    location = /403.html {
+        internal;
+    }
+
+    location = /404.html {
+        internal;
+    }
+
+    location = /50x.html {
+        internal;
     }
 
     location = $BASE_PATH {
@@ -245,6 +260,7 @@ server {
 
     location $BASE_PATH/ {
         proxy_pass http://$effective_addr/;
+        proxy_intercept_errors on;
         proxy_http_version 1.1;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;

@@ -3,10 +3,10 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Abhinav, SDE III at Instahyre, Backend Engineer</title>
+    <title>Abhinav, Backend Production Engineer, Redis MySQL Celery</title>
     <meta
       name="description"
-      content="SDE III at Instahyre. Senior backend engineer. Distributed systems, search, Redis caching, async pipelines, MySQL, AWS. Portfolio, resume, LeetDrill."
+      content="SDE III at Instahyre. Senior backend engineer for production systems, search, Redis caching, Celery pipelines, MySQL, AWS, portfolio, resume, and LeetDrill."
     >
     <meta name="author" content="Abhinav">
     <meta name="robots" content="index,follow,max-image-preview:large">
@@ -19,8 +19,8 @@
     <link rel="alternate" type="application/pdf" href="/resume" title="Abhinav resume (PDF)">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Abhinav">
-    <meta property="og:title" content="Abhinav, SDE III at Instahyre">
-    <meta property="og:description" content="SDE III at Instahyre. Senior backend engineer. Distributed systems, search, caching, async, MySQL, AWS.">
+    <meta property="og:title" content="Abhinav, Backend Production Engineer">
+    <meta property="og:description" content="Senior backend engineer for production systems, search, Redis caching, Celery pipelines, MySQL, AWS, and LeetDrill.">
     <meta property="og:url" content="https://abhiyadav.in/">
     <meta property="og:image" content="https://abhiyadav.in/og-image.png">
     <meta property="og:image:width" content="1200">
@@ -28,8 +28,8 @@
     <meta property="og:image:alt" content="Abhinav, SDE III at Instahyre">
     <meta property="og:locale" content="en_US">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Abhinav, SDE III at Instahyre">
-    <meta name="twitter:description" content="Senior backend engineer. Distributed systems, search, caching, async, MySQL, AWS. Portfolio and projects.">
+    <meta name="twitter:title" content="Abhinav, Backend Production Engineer">
+    <meta name="twitter:description" content="Senior backend engineer for production systems, search, Redis caching, Celery pipelines, MySQL, AWS, and LeetDrill.">
     <meta name="twitter:image" content="https://abhiyadav.in/og-image.png">
     <meta name="twitter:image:alt" content="Abhinav, SDE III at Instahyre">
     <script type="application/ld+json">
@@ -40,7 +40,6 @@
       "alternateName": "abhiyd",
       "url": "https://abhiyadav.in/",
       "image": "https://abhiyadav.in/og-image.png",
-      "email": "mailto:me@abhiyadav.in",
       "jobTitle": "Senior Software Engineer (SDE III)",
       "worksFor": {
         "@type": "Organization",
@@ -760,7 +759,7 @@
           </div>
           <div class="hero-actions" aria-label="Profile links">
             <a href="/resume">Resume</a>
-            <a href="mailto:me@abhiyadav.in">Email</a>
+            <a href="#" data-email-local="me" data-email-domain="abhiyadav.in" data-email-label="Email">Email</a>
             <a href="/linkedin">LinkedIn</a>
             <a href="/github">GitHub</a>
             <a href="https://leetcode.com/u/abhinav-yadav-official/">LeetCode</a>
@@ -771,7 +770,7 @@
         <section class="section" id="about" aria-labelledby="about-title">
           <div class="section-grid">
             <div class="section-heading">
-              <h2 id="about-title">About Me</h2>
+              <h2 id="about-title">Backend production engineering</h2>
               <div class="heading-rule"></div>
             </div>
             <div class="content-stack">
@@ -844,24 +843,24 @@
         <section class="section" id="systems" aria-labelledby="systems-title">
           <div class="section-grid">
             <div class="section-heading">
-              <h2 id="systems-title">Systems I work on</h2>
+              <h2 id="systems-title">Production systems: Redis, Celery, MySQL</h2>
               <div class="heading-rule"></div>
             </div>
             <div class="systems-grid">
               <article class="system-card">
-                <span class="card-title">Ranking and search</span>
+                <h3>Ranking and search</h3>
                 <p>Opportunity calculation, Elasticsearch/OpenSearch alignment, and consistency checks.</p>
               </article>
               <article class="system-card">
-                <span class="card-title">Async workflows</span>
+                <h3>Celery async workflows</h3>
                 <p>Celery and RabbitMQ pipelines, retry behavior, queue isolation, and long-running tasks.</p>
               </article>
               <article class="system-card">
-                <span class="card-title">Caching</span>
+                <h3>Redis caching</h3>
                 <p>Redis hot paths, TTL design, invalidation boundaries, and connection reuse.</p>
               </article>
               <article class="system-card">
-                <span class="card-title">Migrations</span>
+                <h3>MySQL migrations</h3>
                 <p>Schema changes, index rebuilds, backfills, feature flags, and zero-downtime cutovers.</p>
               </article>
             </div>
@@ -1005,7 +1004,7 @@
 
       <footer class="footer">
         <span>Abhinav, Backend engineer</span>
-        <a href="mailto:me@abhiyadav.in">me@abhiyadav.in</a>
+        <a href="#" data-email-local="me" data-email-domain="abhiyadav.in" data-email-label="me [at] abhiyadav [dot] in">me [at] abhiyadav [dot] in</a>
         <nav class="share" aria-label="Share this page">
           <span>Share:</span>
           <a href="https://twitter.com/intent/tweet?text=Abhinav%2C%20SDE%20III%20at%20Instahyre&amp;url=https%3A%2F%2Fabhiyadav.in%2F" target="_blank" rel="noopener noreferrer">X</a>
@@ -1019,6 +1018,14 @@
     </div>
     <script>
       (() => {
+        document.querySelectorAll("[data-email-local][data-email-domain]").forEach((link) => {
+          const address = `${link.dataset.emailLocal}@${link.dataset.emailDomain}`;
+          link.href = `mailto:${address}`;
+          if (link.dataset.emailLabel) {
+            link.textContent = link.dataset.emailLabel;
+          }
+        });
+
         const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         if (prefersReducedMotion) {
           return;

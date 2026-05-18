@@ -2,13 +2,20 @@
 from collections import defaultdict
 from html.parser import HTMLParser
 from pathlib import Path
+import re
 from urllib.request import Request, build_opener, HTTPRedirectHandler
 
 
 ROOT = Path(__file__).resolve().parents[1]
 PAGE = ROOT / "web" / "homepage" / "index.html"
+NOT_FOUND = ROOT / "web" / "homepage" / "404.html"
+FORBIDDEN = ROOT / "web" / "homepage" / "403.html"
+SERVER_ERROR = ROOT / "web" / "homepage" / "50x.html"
+ADS = ROOT / "web" / "homepage" / "ads.txt"
 RESUME = ROOT / "web" / "homepage" / "Abhinav_Resume.pdf"
 DEPLOY = ROOT / "scripts" / "deploy_server.sh"
+REPORT_KEYWORDS = ["backend", "production", "celery", "mysql", "redis"]
+EMAIL_RE = re.compile(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}")
 
 
 def require(condition, message):
@@ -45,6 +52,37 @@ class AnchorParser(HTMLParser):
             self.anchors.append((anchor["href"], text))
 
 
+class SeoParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.title = []
+        self.meta_description = ""
+        self.heading_stack = []
+        self.headings = []
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        if tag == "meta" and attrs.get("name") == "description":
+            self.meta_description = attrs.get("content", "")
+        if tag in {"h1", "h2", "h3", "h4", "h5", "h6"}:
+            self.heading_stack.append([])
+        if tag == "title":
+            self._in_title = True
+
+    def handle_data(self, data):
+        if getattr(self, "_in_title", False):
+            self.title.append(data)
+        if self.heading_stack:
+            self.heading_stack[-1].append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "title":
+            self._in_title = False
+        if tag in {"h1", "h2", "h3", "h4", "h5", "h6"} and self.heading_stack:
+            heading = " ".join(" ".join(self.heading_stack.pop()).split())
+            self.headings.append(heading)
+
+
 def require_unique_anchor_text(body):
     parser = AnchorParser()
     parser.feed(body)
@@ -58,6 +96,24 @@ def require_unique_anchor_text(body):
         if len(hrefs) > 1
     }
     require(not duplicates, f"homepage anchor text must be unique: {duplicates}")
+
+
+def require_report_keyword_coverage(body):
+    parser = SeoParser()
+    parser.feed(body)
+    title = " ".join(" ".join(parser.title).split()).lower()
+    meta = parser.meta_description.lower()
+    headings = " ".join(parser.headings).lower()
+    require(150 <= len(parser.meta_description) <= 220, "meta description must be 150-220 chars")
+    for keyword in REPORT_KEYWORDS:
+        require(keyword in title, f"title must include SEO keyword: {keyword}")
+        require(keyword in meta, f"meta description must include SEO keyword: {keyword}")
+        require(keyword in headings, f"heading tags must include SEO keyword: {keyword}")
+
+
+def require_no_plaintext_email(body):
+    matches = EMAIL_RE.findall(body)
+    require(not matches, f"homepage must not expose plaintext emails: {matches}")
 
 
 class NoRedirectHandler(HTTPRedirectHandler):
@@ -84,13 +140,23 @@ def main():
     body = PAGE.read_text()
     deploy = DEPLOY.read_text()
     require_unique_anchor_text(body)
+    require_report_keyword_coverage(body)
+    require_no_plaintext_email(body)
+    require(NOT_FOUND.exists(), "homepage must include custom 404.html")
+    require("Page not found" in NOT_FOUND.read_text(), "custom 404 page must explain missing page")
+    require(FORBIDDEN.exists(), "homepage must include custom 403.html")
+    require("Access restricted" in FORBIDDEN.read_text(), "custom 403 page must explain restricted access")
+    require(SERVER_ERROR.exists(), "homepage must include custom 50x.html")
+    require("Service unavailable" in SERVER_ERROR.read_text(), "custom 50x page must explain server errors")
+    require(ADS.exists(), "homepage must include ads.txt")
     require(RESUME.exists(), "homepage resume PDF must exist")
     require(RESUME.stat().st_size > 0, "homepage resume PDF must not be empty")
     require('href="/resume"' in body, "homepage must link resume via /resume")
     require("Abhinav" in body, "homepage must mention Abhinav")
     require("Abhinav Yadav" not in body, "homepage must use Abhinav instead of Abhinav Yadav")
     require("SDE III" in body, "homepage must mention current role")
-    require("me@abhiyadav.in" in body, "homepage must link email")
+    require('data-email-local="me"' in body, "homepage must obfuscate contact email local part")
+    require('data-email-domain="abhiyadav.in"' in body, "homepage must obfuscate contact email domain")
     require('href="/linkedin"' in body, "homepage must link LinkedIn via /linkedin")
     require('href="/github"' in body, "homepage must link GitHub profile via /github")
     require(
@@ -108,7 +174,7 @@ def main():
     require("typing-cursor" in body, "homepage must include typing cursor")
     require("typeHeroLine" in body, "homepage must include hero typing script")
     require("prefers-reduced-motion: reduce" in body, "homepage typing must respect reduced motion")
-    require("About Me" in body, "homepage must include About Me section")
+    require("Backend production engineering" in body, "homepage must include backend production section")
     require("Education" in body, "homepage must include Education section")
     require("Senior backend engineer" in body, "homepage must include backend about summary")
     require("backdrop-filter: blur(4.5px)" in body, "homepage desktop navbar must use lighter blur")
@@ -166,11 +232,15 @@ def main():
             "Project archive",
             f"{repo} must appear in archive section",
         )
-    require("Systems I work on" in body, "homepage must include systems section")
+    require("Production systems: Redis, Celery, MySQL" in body, "homepage must include systems section")
     require(
         "--exclude=shared/" in deploy,
         "homepage deploy must preserve /var/www/html/shared extension downloads",
     )
+    require("error_page 403 /403.html;" in deploy, "nginx deploy must use custom 403 page")
+    require("error_page 404 /404.html;" in deploy, "nginx deploy must use custom 404 page")
+    require("error_page 500 502 503 504 /50x.html;" in deploy, "nginx deploy must use custom 50x page")
+    require("proxy_intercept_errors on;" in deploy, "nginx deploy must intercept upstream error pages")
     for url in [
         "http://abhiy.xyz/",
         "https://abhiy.xyz/",
@@ -178,6 +248,10 @@ def main():
         "https://www.abhiy.xyz/",
     ]:
         require_redirect(url, "https://abhiyadav.in/")
+    require_redirect(
+        "https://abhiy.xyz/old-path?source=seo",
+        "https://abhiyadav.in/old-path?source=seo",
+    )
 
 
 if __name__ == "__main__":
