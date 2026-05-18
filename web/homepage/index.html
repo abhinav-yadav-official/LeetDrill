@@ -295,16 +295,16 @@
         width: min(1220px, 100%);
         margin: 0 auto;
         display: grid;
-        grid-template-columns: minmax(240px, 0.38fr) minmax(0, 0.62fr);
-        gap: 72px;
+        grid-template-columns: minmax(220px, 330px) minmax(0, 1fr);
+        gap: clamp(88px, 9vw, 132px);
         align-items: start;
       }
 
       .section-heading h2 {
         margin: 0;
         color: var(--ink);
-        font-size: clamp(38px, 6vw, 84px);
-        line-height: 1;
+        font-size: clamp(34px, 4.8vw, 64px);
+        line-height: 1.04;
         font-weight: 800;
         letter-spacing: 0;
       }
@@ -325,7 +325,7 @@
       .lead {
         margin: 0;
         color: var(--muted);
-        font-size: clamp(19px, 2vw, 28px);
+        font-size: clamp(18px, 1.7vw, 24px);
         line-height: 1.62;
         font-weight: 500;
       }
@@ -776,11 +776,10 @@
             <div class="content-stack">
               <p class="lead">
                 Senior backend engineer focused on correctness, performance, and production safety.
-                Owns technical direction across high-traffic backend domains handling 50M+ monthly
-                API requests, opportunity scoring, candidate ranking, recruiter workflows,
-                notification pipelines, and background job orchestration. Designated P0/P1 on-call
-                escalation owner and primary reviewer for performance-sensitive,
-                security-critical, and data-integrity-impacting backend changes.
+                Owns high-traffic backend domains handling 50M+ monthly API requests across
+                opportunity scoring, candidate ranking, recruiter workflows, notifications, and
+                background jobs. P0/P1 escalation owner and reviewer for performance-sensitive,
+                security-critical, and data-integrity changes.
               </p>
               <div class="skills" aria-label="Technical skills">
                 <span class="skill">Python</span>
