@@ -334,27 +334,13 @@ if [ "$DEPLOY_EXTENSION" = true ]; then
   rsync -az --delete "$ROOT/dist/extension-share"/ "$HOST:$SHARED_DIR"/
 fi
 
-if [ -d "$ROOT/web/homepage" ]; then
-  python3 "$ROOT/scripts/check_homepage.py"
-  tmp_home="/tmp/leetdrill-homepage"
-  ssh "$HOST" "rm -rf $(quote "$tmp_home") && mkdir -p $(quote "$tmp_home")"
-  rsync -az --delete "$ROOT/web/homepage"/ "$HOST:$tmp_home"/
-  ssh "$HOST" "sudo rsync -a --delete --exclude=shared/ $(quote "$tmp_home")/ /var/www/html/ && sudo find /var/www/html -maxdepth 1 -type f \\( -name '*.html' -o -name '*.txt' -o -name '*.xml' -o -name '*.svg' \\) -exec gzip -9 -kf {} \\; && rm -rf $(quote "$tmp_home")"
-fi
-
 scheme="https"
 if [ "$ENABLE_TLS" = false ]; then
   scheme="http"
 fi
 
 curl -fsS "$scheme://$DOMAIN$BASE_PATH/healthz" >/dev/null
-if [ -d "$ROOT/web/homepage" ]; then
-  curl -fsS "$scheme://$DOMAIN/" >/dev/null
-fi
 echo "deployed: $scheme://$DOMAIN$BASE_PATH/"
-if [ -d "$ROOT/web/homepage" ]; then
-  echo "homepage: $scheme://$DOMAIN/"
-fi
 if [ "$DEPLOY_EXTENSION" = true ]; then
   echo "extensions: $scheme://$DOMAIN/shared/leetdrill-extension/"
 fi

@@ -54,6 +54,8 @@ func TestRendererPageIncludesHTMXShell(t *testing.T) {
 	for _, want := range []string{
 		`<script src="https://unpkg.com/htmx.org`,
 		`href="/favicon.svg"`,
+		`href="/favicon-32.png"`,
+		`href="/apple-touch-icon.png"`,
 		`aria-label="LeetDrill logo"`,
 		`>LD</text>`,
 		`href="/session/today"`,

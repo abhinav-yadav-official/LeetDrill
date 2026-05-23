@@ -204,6 +204,9 @@ func (s *server) router() http.Handler {
 		_, _ = w.Write([]byte("ok"))
 	})
 	r.Get("/favicon.svg", handleFavicon)
+	r.Get("/favicon-32.png", handleStaticPNG("favicon-32.png"))
+	r.Get("/apple-touch-icon.png", handleStaticPNG("apple-touch-icon.png"))
+	r.Get("/icon-512.png", handleStaticPNG("icon-512.png"))
 
 	r.Get("/login", s.handleLoginPage)
 	r.Post("/login", s.handleLoginSubmit)
@@ -273,11 +276,28 @@ func handleFavicon(w http.ResponseWriter, _ *http.Request) {
 	_, _ = w.Write([]byte(ldLogoSVG))
 }
 
+// handleStaticPNG serves an embedded PNG favicon asset by name.
+func handleStaticPNG(name string) http.HandlerFunc {
+	body, err := web.Static(name)
+	if err != nil {
+		log.Printf("missing static asset %q: %v", name, err)
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		if body == nil {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "image/png")
+		w.Header().Set("Cache-Control", "public, max-age=86400")
+		_, _ = w.Write(body)
+	}
+}
+
 // ---- HTML ----
 
 const ldLogoSVG = `<svg aria-label="LeetDrill logo" role="img" viewBox="0 0 64 64" class="h-8 w-8 shrink-0 rounded-md">
-          <rect width="64" height="64" rx="12" fill="#18181b"></rect>
-          <text x="32" y="39" text-anchor="middle" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="24" font-weight="800" fill="#f4f4f5">LD</text>
+          <rect width="64" height="64" rx="12" fill="#000000"></rect>
+          <text x="32" y="39" text-anchor="middle" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="24" font-weight="800" fill="#ffffff">LD</text>
         </svg>`
 
 const authBrand = `<div class="flex items-center gap-2 text-sm font-semibold uppercase tracking-normal text-zinc-500">` + ldLogoSVG + `<span>LeetDrill</span></div>`
@@ -366,6 +386,8 @@ const loginPage = `<!doctype html>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Login · LeetDrill</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
     ` + themeHead + `
   </head>
   <body class="min-h-screen bg-zinc-50 text-zinc-950">
@@ -430,6 +452,8 @@ const signupPage = `<!doctype html>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Sign up · LeetDrill</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
     ` + themeHead + `
   </head>
   <body class="min-h-screen bg-zinc-50 text-zinc-950">
@@ -494,7 +518,9 @@ const extensionConnectPage = `<!doctype html>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="leetdrill-extension-token" content="%s">
     <title>Extension connected · LeetDrill</title>
-    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="icon" type="image/svg+xml" href="%s">
+    <link rel="icon" type="image/png" sizes="32x32" href="%s">
+    <link rel="apple-touch-icon" sizes="180x180" href="%s">
     ` + themeHead + `
   </head>
   <body class="min-h-screen bg-zinc-50 text-zinc-950">
@@ -548,6 +574,8 @@ const verifyPendingPage = `<!doctype html>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Verify your email · LeetDrill</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
     ` + themeHead + `
   </head>
   <body class="min-h-screen bg-zinc-50 text-zinc-950">
@@ -576,6 +604,8 @@ const forgotPage = `<!doctype html>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Forgot password · LeetDrill</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
     ` + themeHead + `
   </head>
   <body class="min-h-screen bg-zinc-50 text-zinc-950">
@@ -606,6 +636,8 @@ const resetPage = `<!doctype html>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Set new password · LeetDrill</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
     ` + themeHead + `
   </head>
   <body class="min-h-screen bg-zinc-50 text-zinc-950">
@@ -640,6 +672,8 @@ const verifyDonePage = `<!doctype html>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>%s · LeetDrill</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
     ` + themeHead + `
   </head>
   <body class="min-h-screen bg-zinc-50 text-zinc-950">
@@ -655,9 +689,15 @@ const verifyDonePage = `<!doctype html>
   </body>
 </html>`
 
-func renderExtensionConnectPage(token string) string {
+func (s *server) renderExtensionConnectPage(token string) string {
 	escaped := html.EscapeString(token)
-	return fmt.Sprintf(extensionConnectPage, escaped, escaped)
+	return fmt.Sprintf(extensionConnectPage,
+		escaped,
+		s.appPath("/favicon.svg"),
+		s.appPath("/favicon-32.png"),
+		s.appPath("/apple-touch-icon.png"),
+		escaped,
+	)
 }
 
 func (s *server) handleLoginPage(w http.ResponseWriter, r *http.Request) {
@@ -1093,7 +1133,7 @@ func (s *server) handleExtensionConnect(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, _ = io.WriteString(w, renderExtensionConnectPage(token))
+	_, _ = io.WriteString(w, s.renderExtensionConnectPage(token))
 }
 
 func (s *server) extensionConnectUserID(r *http.Request) (int64, bool) {

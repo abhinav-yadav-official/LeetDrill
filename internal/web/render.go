@@ -15,6 +15,14 @@ import (
 //go:embed templates/*.html partials/*.html
 var assetsFS embed.FS
 
+//go:embed static/*.png
+var staticFS embed.FS
+
+// Static returns an embedded static asset (favicon PNGs) by file name.
+func Static(name string) ([]byte, error) {
+	return staticFS.ReadFile("static/" + name)
+}
+
 // Renderer compiles every page template paired with the base layout, and
 // every partial as a standalone template.
 type Renderer struct {

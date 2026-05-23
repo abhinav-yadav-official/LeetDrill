@@ -61,6 +61,39 @@ func TestFaviconServesLDLogo(t *testing.T) {
 	}
 }
 
+func TestStaticPNGServesEmbeddedAsset(t *testing.T) {
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/favicon-32.png", nil)
+
+	handleStaticPNG("favicon-32.png")(w, req)
+
+	if got := w.Result().Header.Get("Content-Type"); got != "image/png" {
+		t.Fatalf("Content-Type = %q, want image/png", got)
+	}
+	if got := w.Result().Header.Get("Cache-Control"); got != "public, max-age=86400" {
+		t.Fatalf("Cache-Control = %q, want public, max-age=86400", got)
+	}
+	if got := w.Body.Bytes(); len(got) == 0 {
+		t.Fatalf("body is empty")
+	}
+}
+
+func TestExtensionConnectPageUsesBasePathIconURLs(t *testing.T) {
+	s := &server{basePath: "/leetdrill"}
+
+	body := s.renderExtensionConnectPage("token")
+
+	for _, want := range []string{
+		`href="/leetdrill/favicon.svg"`,
+		`href="/leetdrill/favicon-32.png"`,
+		`href="/leetdrill/apple-touch-icon.png"`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("extension connect page missing %q:\n%s", want, body)
+		}
+	}
+}
+
 func TestSafeLoginNext(t *testing.T) {
 	s := &server{basePath: "/leetdrill"}
 	tests := []struct {
@@ -312,7 +345,8 @@ func TestHandshakeRequestSupportsWebSessionToken(t *testing.T) {
 }
 
 func TestExtensionConnectPageCarriesTokenForContentScript(t *testing.T) {
-	body := renderExtensionConnectPage("ext-token")
+	s := &server{}
+	body := s.renderExtensionConnectPage("ext-token")
 
 	for _, want := range []string{
 		`<meta name="leetdrill-extension-token" content="ext-token">`,
