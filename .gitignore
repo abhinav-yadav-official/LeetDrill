@@ -13,3 +13,15 @@ __pycache__/
 .idea/
 .vscode/
 .superpowers/
+
+# Hide internal notes/specs/agent docs; keep only README visible.
+*.md
+!README.md
+!AGENTS.md
+checkpoints.txt
+.agent_*
+.superpowers/
+
+# Public extension store docs (keep tracked)
+!extension/PRIVACY.md
+!extension/STORE_LISTING.md

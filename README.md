@@ -1,21 +1,43 @@
-# leetdrill
+<div align="center">
 
-LeetDrill is a self-hosted LeetCode practice tracker. It imports the LeetCode
-catalog, captures your accepted submissions through a browser extension, and
-keeps a daily practice queue based on what is due, unsolved, or needs more work.
+# LeetDrill
 
-Production: https://abhiyadav.in/leetdrill
+**Self-hosted LeetCode practice tracker with a spaced-repetition daily queue.**
 
-Author: https://abhiyadav.in
+[![Live App](https://img.shields.io/badge/Live%20App-abhiyadav.in%2Fleetdrill-2ea44f?style=for-the-badge)](https://abhiyadav.in/leetdrill)
+[![Release](https://img.shields.io/github/v/release/abhinav-yadav-official/leetdrill?style=for-the-badge)](https://github.com/abhinav-yadav-official/leetdrill/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
+[![Go](https://img.shields.io/badge/Go-1.25-00ADD8?style=for-the-badge&logo=go&logoColor=white)](go.mod)
 
-## Development
+</div>
 
-Prereqs: Go 1.22+, Docker, and [Task](https://taskfile.dev).
+![LeetDrill](docs/screenshot.png)
+
+## Overview
+
+LeetDrill imports the LeetCode catalog, captures your accepted submissions through a browser extension, and builds a daily practice queue from what is due, unsolved, or needs more work — so you review the right problems at the right time instead of grinding at random.
+
+## Features
+
+- **Catalog import** — pulls the LeetCode problem set into a local database.
+- **Submission capture** — a browser extension records your accepted submissions automatically.
+- **Spaced-repetition queue** — schedules reviews with the SM-2 algorithm (see [Concepts](#concepts)).
+- **Daily workspace** — one focused view: what is due, attempt signal, and the review plan.
+- **Self-hosted** — single Go binary + Postgres; your data stays yours.
+
+## Live Access
+
+- App: https://abhiyadav.in/leetdrill
+
+## Installation
+
+Prereqs: Go 1.25+, Docker, [Task](https://taskfile.dev).
 
 ```sh
+git clone https://github.com/abhinav-yadav-official/leetdrill.git
+cd leetdrill
 cp .env.example .env
-# fill LEETDRILL_COOKIE_KEY: openssl rand -base64 32
-
+# set encryption key: openssl rand -base64 32  -> LEETDRILL_COOKIE_KEY
 task install:tools
 task db:up
 task migrate:up
@@ -23,47 +45,18 @@ task test
 task dev
 ```
 
-Open http://localhost:8080.
+Then load the browser extension from `extension/` to start capturing submissions.
 
-The dashboard counts show the full backlog. Today is a capped practice session
-and defaults to 5 problems, so it can be smaller than the total due or learning
-counts.
+## Usage
 
-## Deploy
+1. Sign in (email or Google).
+2. Install the extension; solve problems on LeetCode — accepted submissions sync automatically.
+3. Each day, work the queue ordered by what is due.
 
-`scripts/deploy_server.sh` bootstraps or updates an Ubuntu-style VPS. It syncs
-source, preserves the remote `.env` by default, runs tests, builds binaries,
-runs migrations, installs the systemd service, checks nginx, verifies HTTPS, and
-publishes extension downloads.
+## Concepts
 
-```sh
-task deploy:server -- abhiyadav.in
-```
+- **SM-2 (SuperMemo 2)** — the spaced-repetition algorithm behind the review queue. Each problem keeps an *ease factor* and an *interval*; when you review, the interval grows (good recall) or resets (poor recall), and the ease factor adjusts. Reviews are scheduled at expanding gaps so you revisit a problem just before you would forget it — maximising retention per minute spent.
 
-First-run example:
+## License
 
-```sh
-SETUP_POSTGRES=true \
-DB_NAME=leetdrill \
-DB_USER=leetdrill \
-DB_PASSWORD='change-me' \
-LETSENCRYPT_EMAIL=you@example.com \
-task deploy:server -- new-host.example.com
-```
-
-Use `UPLOAD_ENV=true` only when you intentionally want to replace the remote
-`.env`.
-
-## Extension Build
-
-Build Chrome and Firefox packages:
-
-```sh
-task extension:package
-```
-
-Build and publish extension downloads to the VPS:
-
-```sh
-task extension:deploy
-```
+[MIT](LICENSE) © 2026 Abhinav Yadav
