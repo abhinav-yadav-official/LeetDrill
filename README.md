@@ -5,7 +5,7 @@
 **Self-hosted LeetCode practice tracker with a spaced-repetition daily queue.**
 
 [![Live App](https://img.shields.io/badge/Live%20App-abhiyadav.in%2Fleetdrill-2ea44f?style=for-the-badge)](https://abhiyadav.in/leetdrill)
-[![Release](https://img.shields.io/github/v/release/abhinav-yadav-official/leetdrill?style=for-the-badge)](https://github.com/abhinav-yadav-official/leetdrill/releases)
+[![Release](https://img.shields.io/github/v/release/abhinav-yadav-official/LeetDrill?style=for-the-badge)](https://github.com/abhinav-yadav-official/LeetDrill/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 [![Go](https://img.shields.io/badge/Go-1.25-00ADD8?style=for-the-badge&logo=go&logoColor=white)](go.mod)
 
@@ -34,8 +34,8 @@ LeetDrill imports the LeetCode catalog, captures your accepted submissions throu
 Prereqs: Go 1.25+, Docker, [Task](https://taskfile.dev).
 
 ```sh
-git clone https://github.com/abhinav-yadav-official/leetdrill.git
-cd leetdrill
+git clone https://github.com/abhinav-yadav-official/LeetDrill.git
+cd LeetDrill
 cp .env.example .env
 # set encryption key: openssl rand -base64 32  -> LEETDRILL_COOKIE_KEY
 task install:tools
