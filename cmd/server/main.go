@@ -203,6 +203,7 @@ func (s *server) router() http.Handler {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))
 	})
+	r.Get("/favicon.ico", handleStaticAsset("favicon.ico", "image/x-icon"))
 	r.Get("/favicon.svg", handleFavicon)
 	r.Get("/favicon-32.png", handleStaticPNG("favicon-32.png"))
 	r.Get("/apple-touch-icon.png", handleStaticPNG("apple-touch-icon.png"))
@@ -273,11 +274,16 @@ func (s *server) appPath(target string) string {
 func handleFavicon(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "image/svg+xml")
 	w.Header().Set("Cache-Control", "public, max-age=86400")
-	_, _ = w.Write([]byte(ldLogoSVG))
+	_, _ = w.Write([]byte(faviconSVG))
 }
 
 // handleStaticPNG serves an embedded PNG favicon asset by name.
 func handleStaticPNG(name string) http.HandlerFunc {
+	return handleStaticAsset(name, "image/png")
+}
+
+// handleStaticAsset serves an embedded static asset with the given content type.
+func handleStaticAsset(name, contentType string) http.HandlerFunc {
 	body, err := web.Static(name)
 	if err != nil {
 		log.Printf("missing static asset %q: %v", name, err)
@@ -287,13 +293,19 @@ func handleStaticPNG(name string) http.HandlerFunc {
 			http.NotFound(w, r)
 			return
 		}
-		w.Header().Set("Content-Type", "image/png")
+		w.Header().Set("Content-Type", contentType)
 		w.Header().Set("Cache-Control", "public, max-age=86400")
 		_, _ = w.Write(body)
 	}
 }
 
 // ---- HTML ----
+
+// faviconSVG is the standalone SVG served at /favicon.svg — must have xmlns.
+const faviconSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="12" fill="#000000"/>
+  <text x="32" y="39" text-anchor="middle" font-family="system-ui,sans-serif" font-size="24" font-weight="800" fill="#ffffff">LD</text>
+</svg>`
 
 const ldLogoSVG = `<svg aria-label="LeetDrill logo" role="img" viewBox="0 0 64 64" class="h-8 w-8 shrink-0 rounded-md">
           <rect width="64" height="64" rx="12" fill="#000000"></rect>
@@ -375,6 +387,21 @@ const themeHead = `<script>
       .dark .shadow-sm { box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.35) !important; }
     </style>`
 
+// authFaviconSEO is injected into every auth page <head> after the <title>.
+// Includes favicon links (ico/svg/png/apple) and core SEO meta tags.
+const authFaviconSEO = `<meta name="description" content="LeetDrill — daily LeetCode practice with spaced repetition. Track submissions, surface weak problems, and build a consistent review habit.">
+    <meta name="keywords" content="LeetDrill, Leet Drill, LeetCode practice, spaced repetition, coding interview prep, algorithm practice">
+    <meta name="application-name" content="LeetDrill">
+    <meta property="og:site_name" content="LeetDrill">
+    <meta property="og:description" content="Daily LeetCode practice with spaced repetition. Track submissions, surface weak problems, and build a consistent review habit.">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:description" content="Daily LeetCode practice with spaced repetition. Track submissions, surface weak problems, and build a consistent review habit.">
+    <link rel="icon" href="favicon.ico">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">`
+
 const authThemeToggle = `<button type="button" data-theme-toggle class="fixed right-4 top-4 z-10 rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 shadow-sm hover:bg-zinc-50">
       Theme: <span data-theme-label>System</span>
     </button>`
@@ -385,9 +412,8 @@ const loginPage = `<!doctype html>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Login · LeetDrill</title>
-    <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    <meta property="og:title" content="LeetDrill — Daily LeetCode Practice">
+    ` + authFaviconSEO + `
     ` + themeHead + `
   </head>
   <body class="min-h-screen bg-zinc-50 text-zinc-950">
@@ -451,9 +477,7 @@ const signupPage = `<!doctype html>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Sign up · LeetDrill</title>
-    <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    ` + authFaviconSEO + `
     ` + themeHead + `
   </head>
   <body class="min-h-screen bg-zinc-50 text-zinc-950">
@@ -518,6 +542,7 @@ const extensionConnectPage = `<!doctype html>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="leetdrill-extension-token" content="%s">
     <title>Extension connected · LeetDrill</title>
+    <link rel="icon" href="%s">
     <link rel="icon" type="image/svg+xml" href="%s">
     <link rel="icon" type="image/png" sizes="32x32" href="%s">
     <link rel="apple-touch-icon" sizes="180x180" href="%s">
@@ -573,9 +598,7 @@ const verifyPendingPage = `<!doctype html>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Verify your email · LeetDrill</title>
-    <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    ` + authFaviconSEO + `
     ` + themeHead + `
   </head>
   <body class="min-h-screen bg-zinc-50 text-zinc-950">
@@ -603,9 +626,7 @@ const forgotPage = `<!doctype html>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Forgot password · LeetDrill</title>
-    <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    ` + authFaviconSEO + `
     ` + themeHead + `
   </head>
   <body class="min-h-screen bg-zinc-50 text-zinc-950">
@@ -635,9 +656,7 @@ const resetPage = `<!doctype html>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Set new password · LeetDrill</title>
-    <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    ` + authFaviconSEO + `
     ` + themeHead + `
   </head>
   <body class="min-h-screen bg-zinc-50 text-zinc-950">
@@ -671,9 +690,7 @@ const verifyDonePage = `<!doctype html>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>%s · LeetDrill</title>
-    <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    ` + authFaviconSEO + `
     ` + themeHead + `
   </head>
   <body class="min-h-screen bg-zinc-50 text-zinc-950">
@@ -693,6 +710,7 @@ func (s *server) renderExtensionConnectPage(token string) string {
 	escaped := html.EscapeString(token)
 	return fmt.Sprintf(extensionConnectPage,
 		escaped,
+		s.appPath("/favicon.ico"),
 		s.appPath("/favicon.svg"),
 		s.appPath("/favicon-32.png"),
 		s.appPath("/apple-touch-icon.png"),

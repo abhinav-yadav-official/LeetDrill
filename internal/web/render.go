@@ -15,7 +15,7 @@ import (
 //go:embed templates/*.html partials/*.html
 var assetsFS embed.FS
 
-//go:embed static/*.png
+//go:embed static/*.png static/*.ico
 var staticFS embed.FS
 
 // Static returns an embedded static asset (favicon PNGs) by file name.
