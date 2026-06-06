@@ -302,7 +302,7 @@ func handleStaticAsset(name, contentType string) http.HandlerFunc {
 // ---- HTML ----
 
 // faviconSVG is the standalone SVG served at /favicon.svg — must have xmlns.
-const faviconSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+const faviconSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="LeetDrill logo">
   <rect width="64" height="64" rx="12" fill="#000000"/>
   <text x="32" y="39" text-anchor="middle" font-family="system-ui,sans-serif" font-size="24" font-weight="800" fill="#ffffff">LD</text>
 </svg>`
