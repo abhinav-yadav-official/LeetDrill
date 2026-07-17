@@ -10,7 +10,7 @@
         {{range .Data.Problem.TopicTags}}<span class="rounded-full bg-zinc-100 px-2 py-1 text-xs text-zinc-700">{{.Name}}</span>{{end}}
       </div>
     </div>
-    <a class="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800" href="{{.Data.Problem.URL}}" target="_blank" rel="noreferrer">Open on LeetCode</a>
+    <a class="flex items-center gap-2 rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800" href="{{.Data.Problem.URL}}" target="_blank" rel="noreferrer"><i class="ph ph-arrow-square-out"></i> Open on LeetCode</a>
   </div>
 
   <div class="grid gap-4 sm:grid-cols-4">
@@ -26,12 +26,12 @@
       {{if ne .Data.State.Status "mastered"}}
         <form method="post" action="{{appPath "/problems"}}/{{.Data.Problem.ID}}/triage">
           <input type="hidden" name="action" value="master">
-          <button class="rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium hover:bg-zinc-50">Mark Mastered</button>
+          <button class="flex items-center gap-2 rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium hover:bg-zinc-50"><i class="ph ph-check-circle"></i> Mark Mastered</button>
         </form>
       {{end}}
       <form method="post" action="{{appPath "/problems"}}/{{.Data.Problem.ID}}/triage" onsubmit="return confirm('Reset review schedule for this problem? History will remain but scheduling will restart.')">
         <input type="hidden" name="action" value="reset">
-        <button class="rounded-md border border-rose-200 bg-white px-4 py-2 text-sm font-medium text-rose-600 hover:bg-rose-50">Reset review schedule</button>
+        <button class="flex items-center gap-2 rounded-md border border-rose-200 bg-white px-4 py-2 text-sm font-medium text-rose-600 hover:bg-rose-50"><i class="ph ph-arrow-counter-clockwise"></i> Reset review schedule</button>
       </form>
     </div>
   </section>
@@ -41,15 +41,24 @@
       <h2 class="font-medium">Attempt history</h2>
     </div>
     <div class="divide-y divide-zinc-100">
-      {{range .Data.Attempts}}
+      {{range $i, $a := .Data.Attempts}}
         <div class="px-4 py-4">
           <div class="flex flex-wrap items-center gap-2">
             <span class="rounded-full px-2 py-1 text-xs font-medium {{verdictBadge .Verdict}}">{{.Verdict}}</span>
             <span class="text-sm font-medium">{{.DerivedRating}}</span>
             <span class="text-sm text-zinc-500">{{fmtTime .CompletedAt}}</span>
+            {{if .Language}}<span class="rounded-md bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-700">{{upper .Language}}</span>{{end}}
+            {{if .RuntimeMs}}<span class="text-xs text-zinc-500" title="Runtime">{{.RuntimeMs}} ms</span>{{end}}
+            {{if .MemoryKB}}<span class="text-xs text-zinc-500" title="Memory">{{printf "%.1f" (divf .MemoryKB 1024)}} MB</span>{{end}}
             {{range .MistakeTags}}<span class="rounded-md bg-zinc-100 px-2 py-1 text-xs text-zinc-700">{{mistakeLabel .}}</span>{{end}}
           </div>
           {{if .Journal}}<p class="mt-2 whitespace-pre-wrap text-sm text-zinc-700">{{.Journal}}</p>{{end}}
+          {{if and (eq $i 0) .Code}}
+            <details class="code-details mt-2">
+              <summary class="flex items-center gap-2"><i class="ph ph-code"></i> View submission code</summary>
+              <div class="code-block mt-0 p-3"><pre><code>{{.Code}}</code></pre></div>
+            </details>
+          {{end}}
         </div>
       {{else}}
         <div class="px-4 py-8 text-sm text-zinc-500">No attempts recorded.</div>

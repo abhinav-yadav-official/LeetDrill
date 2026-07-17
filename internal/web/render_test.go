@@ -84,13 +84,30 @@ func TestRendererPageIncludesThemeControls(t *testing.T) {
 
 	body := rec.Body.String()
 	for _, want := range []string{
-		`leetdrill-theme`,
+		`/theme-loader.js`,
+		`/themes.css`,
 		`data-theme-toggle`,
 		`data-theme-label`,
-		`.dark .bg-white`,
-		`.dark .rounded-full.bg-emerald-100.text-emerald-800 { color: #065f46`,
-		`.dark svg[aria-label="LeetDrill logo"] rect { fill: #f4f4f5`,
-		`.dark svg[aria-label="LeetDrill logo"] text { fill: #18181b`,
+		`leetdrillTheme.set('system')`,
+		`leetdrillTheme.set('light')`,
+		`leetdrillTheme.set('dark')`,
+		`leetdrillTheme.set('high-contrast')`,
+		`leetdrillTheme.set('night')`,
+		`leetdrillTheme.set('dracula')`,
+		`leetdrillTheme.set('solarized')`,
+		`leetdrillTheme.set('catppuccin')`,
+		`leetdrillTheme.set('tokyo-night')`,
+		`leetdrillTheme.set('gruvbox')`,
+		`--logo-bg`,
+		`--logo-text`,
+		`ph-palette`,
+		`ph-house`,
+		`ph-calendar-check`,
+		`ph-code-block`,
+		`ph-shapes`,
+		`ph-chart-bar`,
+		`ph-gear`,
+		`ph-puzzle-piece`,
 	} {
 		if !strings.Contains(body, want) {
 			t.Fatalf("rendered dashboard missing theme fragment %q:\n%s", want, body)

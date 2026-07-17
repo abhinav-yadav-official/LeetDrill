@@ -15,6 +15,7 @@ SETUP_POSTGRES="${SETUP_POSTGRES:-false}"
 SETUP_NGINX="${SETUP_NGINX:-true}"
 ENABLE_TLS="${ENABLE_TLS:-auto}"
 RUN_MIGRATIONS="${RUN_MIGRATIONS:-true}"
+USE_DOCKER="${USE_DOCKER:-false}"
 DEPLOY_EXTENSION="${DEPLOY_EXTENSION:-true}"
 REMOTE_TEST_CMD="${REMOTE_TEST_CMD:-go test ./...}"
 GOOSE_VERSION="${GOOSE_VERSION:-v3.23.0}"
@@ -120,8 +121,14 @@ if [ -f "$ENV_FILE" ] && { [ "$UPLOAD_ENV" = true ] || { [ "$UPLOAD_ENV" = missi
   ssh "$HOST" "chmod 600 $(quote "$APP_DIR")/.env"
 fi
 
+if [ "$USE_DOCKER" = true ]; then
+  echo "building docker image..."
+  docker build -t leetdrill:latest "$ROOT"
+  docker save leetdrill:latest | ssh "$HOST" "docker load"
+fi
+
 ssh "$HOST" \
-  "APP_DIR=$(quote "$APP_DIR") APP_ADDR=$(quote "$APP_ADDR") BASE_PATH=$(quote "$BASE_PATH") DOMAIN=$(quote "$DOMAIN") DOMAIN_ALIASES=$(quote "$DOMAIN_ALIASES") SETUP_POSTGRES=$SETUP_POSTGRES SETUP_NGINX=$SETUP_NGINX ENABLE_TLS=$(quote "$ENABLE_TLS") RUN_MIGRATIONS=$RUN_MIGRATIONS REMOTE_TEST_CMD=$(quote "$REMOTE_TEST_CMD") GOOSE_VERSION=$(quote "$GOOSE_VERSION") REMOTE_USER=$(quote "$REMOTE_USER") REMOTE_GROUP=$(quote "$REMOTE_GROUP") DATABASE_URL=$(quote "${DATABASE_URL:-}") LEETDRILL_COOKIE_KEY=$(quote "${LEETDRILL_COOKIE_KEY:-}") DB_NAME=$(quote "${DB_NAME:-}") DB_USER=$(quote "${DB_USER:-}") DB_PASSWORD=$(quote "${DB_PASSWORD:-}") LETSENCRYPT_EMAIL=$(quote "${LETSENCRYPT_EMAIL:-}") FORCE_NGINX_SITE=$(quote "${FORCE_NGINX_SITE:-false}") bash -s" <<'REMOTE_DEPLOY'
+  "APP_DIR=$(quote "$APP_DIR") APP_ADDR=$(quote "$APP_ADDR") BASE_PATH=$(quote "$BASE_PATH") DOMAIN=$(quote "$DOMAIN") DOMAIN_ALIASES=$(quote "$DOMAIN_ALIASES") SETUP_POSTGRES=$SETUP_POSTGRES SETUP_NGINX=$SETUP_NGINX ENABLE_TLS=$(quote "$ENABLE_TLS") USE_DOCKER=$USE_DOCKER RUN_MIGRATIONS=$RUN_MIGRATIONS REMOTE_TEST_CMD=$(quote "$REMOTE_TEST_CMD") GOOSE_VERSION=$(quote "$GOOSE_VERSION") REMOTE_USER=$(quote "$REMOTE_USER") REMOTE_GROUP=$(quote "$REMOTE_GROUP") DATABASE_URL=$(quote "${DATABASE_URL:-}") LEETDRILL_COOKIE_KEY=$(quote "${LEETDRILL_COOKIE_KEY:-}") DB_NAME=$(quote "${DB_NAME:-}") DB_USER=$(quote "${DB_USER:-}") DB_PASSWORD=$(quote "${DB_PASSWORD:-}") LETSENCRYPT_EMAIL=$(quote "${LETSENCRYPT_EMAIL:-}") FORCE_NGINX_SITE=$(quote "${FORCE_NGINX_SITE:-false}") bash -s" <<'REMOTE_DEPLOY'
 set -euo pipefail
 
 sql_escape() {
@@ -178,15 +185,19 @@ set +a
 effective_addr="${LEETDRILL_ADDR:-$APP_ADDR}"
 
 cd "$APP_DIR"
-$REMOTE_TEST_CMD
-go build -o bin/server ./cmd/server
-go build -o bin/ingest ./cmd/ingest
 
-if [ "$RUN_MIGRATIONS" = true ]; then
-  go run "github.com/pressly/goose/v3/cmd/goose@$GOOSE_VERSION" -dir migrations postgres "$DATABASE_URL" up
-fi
+if [ "${USE_DOCKER:-false}" = true ]; then
+  docker compose up -d --build
+else
+  $REMOTE_TEST_CMD
+  go build -o bin/server ./cmd/server
+  go build -o bin/ingest ./cmd/ingest
 
-sudo tee /etc/systemd/system/leetdrill.service >/dev/null <<SERVICE
+  if [ "$RUN_MIGRATIONS" = true ]; then
+    go run "github.com/pressly/goose/v3/cmd/goose@$GOOSE_VERSION" -dir migrations postgres "$DATABASE_URL" up
+  fi
+
+  sudo tee /etc/systemd/system/leetdrill.service >/dev/null <<SERVICE
 [Unit]
 Description=LeetDrill web server
 After=network-online.target postgresql.service
@@ -211,6 +222,7 @@ SERVICE
 sudo systemctl daemon-reload
 sudo systemctl enable leetdrill.service >/dev/null
 sudo systemctl restart leetdrill.service
+fi
 
 if [ "$SETUP_NGINX" = true ]; then
   if ! command -v nginx >/dev/null 2>&1; then
@@ -323,7 +335,11 @@ NGINX
   fi
 fi
 
-systemctl is-active leetdrill.service
+if [ "${USE_DOCKER:-false}" = true ]; then
+  docker compose ps --status running | grep -q leetdrill
+else
+  systemctl is-active leetdrill.service
+fi
 curl -fsS "http://$effective_addr/healthz" >/dev/null
 REMOTE_DEPLOY
 

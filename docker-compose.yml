@@ -1,12 +1,13 @@
 services:
   db:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_USER: leetdrill
       POSTGRES_PASSWORD: leetdrill
       POSTGRES_DB: leetdrill
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     volumes:
       - leetdrill_pg:/var/lib/postgresql/data
     healthcheck:
@@ -14,6 +15,28 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8082:8080"
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://leetdrill:leetdrill@db:5432/leetdrill?sslmode=disable
+      LEETDRILL_COOKIE_KEY: ${LEETDRILL_COOKIE_KEY}
+      SINGLE_USER: ${SINGLE_USER:-true}
+      LEETDRILL_SYNC_WORKER: ${LEETDRILL_SYNC_WORKER:-false}
+      USER_EMAIL: ${USER_EMAIL}
+      LEETCODE_USERNAME: ${LEETCODE_USERNAME}
+      LEETDRILL_ADDR: :8080
+      LEETDRILL_BASE_PATH: /leetdrill
+      LEETDRILL_SECURE_COOKIES: "true"
+    depends_on:
+      db:
+        condition: service_healthy
 
 volumes:
   leetdrill_pg:

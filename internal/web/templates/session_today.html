@@ -11,11 +11,11 @@
           <option value="solved" {{if eq .Data.Filter "solved"}}selected{{end}}>solved</option>
           <option value="not-solved" {{if eq .Data.Filter "not-solved"}}selected{{end}}>not solved</option>
         </select>
-        <button class="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-medium hover:bg-zinc-50">Apply</button>
+        <button class="flex items-center gap-2 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-medium hover:bg-zinc-50"><i class="ph ph-funnel"></i> Apply</button>
       </form>
       <form class="flex flex-wrap gap-2" method="post" action="{{appPath "/session/start"}}">
-        <button name="mode" value="weak" class="rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium hover:bg-zinc-50">Weakness queue</button>
-        <button class="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white">Refresh session</button>
+        <button name="mode" value="weak" class="flex items-center gap-2 rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium hover:bg-zinc-50"><i class="ph ph-warning"></i> Weakness queue</button>
+        <button class="flex items-center gap-2 rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white"><i class="ph ph-arrows-clockwise"></i> Refresh session</button>
       </form>
     </div>
   </div>

@@ -1,0 +1,521 @@
+/* ============================================================
+   LeetDrill Themes — Generic CSS Custom Properties Theming
+   ============================================================
+   Drop this file into any project for a full theme system.
+   Define semantic CSS variables per data-theme attribute.
+   The JS companion (theme-loader.js) handles persistence.
+   ============================================================ */
+
+/* ---- Light (warm sepia tone, vivid) ---- */
+:root,
+[data-theme="light"] {
+  --bg-primary: #faf3e8;
+  --bg-secondary: #fffaf0;
+  --bg-tertiary: #f0e8d5;
+  --bg-inverse: #3d2e1e;
+  --bg-hover: #f0e8d5;
+
+  --text-primary: #3d2e1e;
+  --text-secondary: #7a6652;
+  --text-muted: #a8927a;
+  --text-inverse: #fffaf0;
+
+  --border-primary: #e8dcc8;
+  --border-secondary: #dcccb4;
+
+  --accent: #d97706;
+  --accent-hover: #b45309;
+  --accent-text: #ffffff;
+
+  --color-scheme: light;
+  --logo-bg: #3d2e1e;
+  --logo-text: #faf3e8;
+
+  --success-bg: #f0faf0;
+  --success-text: #2d5a2d;
+  --success-border: #65a765;
+  --warning-bg: #fff8e8;
+  --warning-text: #8a6d1a;
+  --warning-border: #d9a84e;
+  --error-bg: #fef2f2;
+  --error-text: #991b1b;
+  --error-border: #dc2626;
+  --info-bg: #f0f6ff;
+  --info-text: #1e3a5f;
+  --info-border: #93c5fd;
+
+  --input-bg: #fffaf0;
+  --input-border: #dcccb4;
+  --input-focus: #d97706;
+
+  --badge-green-bg: #e6f4e6;
+  --badge-green-text: #2d5a2d;
+  --badge-red-bg: #fee2e2;
+  --badge-red-text: #991b1b;
+  --badge-yellow-bg: #fef9c3;
+  --badge-yellow-text: #854d0e;
+  --badge-emerald-bg: #d1fae5;
+  --badge-emerald-text: #065f46;
+  --badge-rose-bg: #ffe4e6;
+  --badge-rose-text: #9f1239;
+  --badge-sky-bg: #e0f2fe;
+  --badge-sky-text: #075985;
+  --badge-slate-bg: #e2e8f0;
+  --badge-slate-text: #334155;
+}
+
+/* ---- Dark (Nord-like, low contrast) ---- */
+[data-theme="dark"] {
+  --bg-primary: #2e3440;
+  --bg-secondary: #3b4252;
+  --bg-tertiary: #434c5e;
+  --bg-inverse: #eceff4;
+  --bg-hover: #434c5e;
+
+  --text-primary: #eceff4;
+  --text-secondary: #d8dee9;
+  --text-muted: #81a1c1;
+  --text-inverse: #2e3440;
+
+  --border-primary: #4c566a;
+  --border-secondary: #434c5e;
+
+  --accent: #e07c3c;
+  --accent-hover: #d06c2c;
+  --accent-text: #ffffff;
+
+  --color-scheme: dark;
+  --logo-bg: #eceff4;
+  --logo-text: #2e3440;
+
+  --success-bg: #3b4252;
+  --success-text: #a3be8c;
+  --success-border: #a3be8c;
+  --warning-bg: #3b4252;
+  --warning-text: #ebcb8b;
+  --warning-border: #ebcb8b;
+  --error-bg: #3b4252;
+  --error-text: #bf616a;
+  --error-border: #bf616a;
+  --info-bg: #3b4252;
+  --info-text: #81a1c1;
+  --info-border: #81a1c1;
+
+  --input-bg: #3b4252;
+  --input-border: #4c566a;
+  --input-focus: #e07c3c;
+
+  --badge-green-bg: #3b4252;
+  --badge-green-text: #a3be8c;
+  --badge-red-bg: #3b4252;
+  --badge-red-text: #bf616a;
+  --badge-yellow-bg: #3b4252;
+  --badge-yellow-text: #ebcb8b;
+  --badge-emerald-bg: #3b4252;
+  --badge-emerald-text: #a3be8c;
+  --badge-rose-bg: #3b4252;
+  --badge-rose-text: #bf616a;
+  --badge-sky-bg: #3b4252;
+  --badge-sky-text: #81a1c1;
+  --badge-slate-bg: #434c5e;
+  --badge-slate-text: #d8dee9;
+}
+
+/* ---- High Contrast ---- */
+[data-theme="high-contrast"] {
+  --bg-primary: #ffffff;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f0f0f0;
+  --bg-inverse: #000000;
+  --bg-hover: #f0f0f0;
+
+  --text-primary: #000000;
+  --text-secondary: #333333;
+  --text-muted: #555555;
+  --text-inverse: #ffffff;
+
+  --border-primary: #000000;
+  --border-secondary: #888888;
+
+  --accent: #000000;
+  --accent-hover: #333333;
+  --accent-text: #ffffff;
+
+  --color-scheme: light;
+  --logo-bg: #000000;
+  --logo-text: #ffffff;
+
+  --success-bg: #ffffff;
+  --success-text: #006400;
+  --success-border: #006400;
+  --warning-bg: #ffffff;
+  --warning-text: #8b6914;
+  --warning-border: #8b6914;
+  --error-bg: #ffffff;
+  --error-text: #cc0000;
+  --error-border: #cc0000;
+  --info-bg: #ffffff;
+  --info-text: #005a9c;
+  --info-border: #005a9c;
+
+  --input-bg: #ffffff;
+  --input-border: #000000;
+  --input-focus: #000000;
+
+  --badge-green-bg: #ffffff;
+  --badge-green-text: #006400;
+  --badge-red-bg: #ffffff;
+  --badge-red-text: #cc0000;
+  --badge-yellow-bg: #ffffff;
+  --badge-yellow-text: #8b6914;
+  --badge-emerald-bg: #ffffff;
+  --badge-emerald-text: #006400;
+  --badge-rose-bg: #ffffff;
+  --badge-rose-text: #cc0000;
+  --badge-sky-bg: #ffffff;
+  --badge-sky-text: #005a9c;
+  --badge-slate-bg: #cccccc;
+  --badge-slate-text: #000000;
+}
+
+/* ---- Night (OLED) ---- */
+[data-theme="night"] {
+  --bg-primary: #000000;
+  --bg-secondary: #0a0a0a;
+  --bg-tertiary: #1a1a1a;
+  --bg-inverse: #f4f4f5;
+  --bg-hover: #1a1a1a;
+
+  --text-primary: #e4e4e7;
+  --text-secondary: #a1a1aa;
+  --text-muted: #52525b;
+  --text-inverse: #000000;
+
+  --border-primary: #27272a;
+  --border-secondary: #18181b;
+
+  --accent: #f4f4f5;
+  --accent-hover: #e4e4e7;
+  --accent-text: #000000;
+
+  --color-scheme: dark;
+  --logo-bg: #f4f4f5;
+  --logo-text: #000000;
+
+  --success-bg: #001a00;
+  --success-text: #4ade80;
+  --success-border: #047857;
+  --warning-bg: #1a1000;
+  --warning-text: #facc15;
+  --warning-border: #a16207;
+  --error-bg: #1a0000;
+  --error-text: #fb7185;
+  --error-border: #be123c;
+  --info-bg: #000d1a;
+  --info-text: #7dd3fc;
+  --info-border: #0369a1;
+
+  --input-bg: #0a0a0a;
+  --input-border: #27272a;
+  --input-focus: #f4f4f5;
+
+  --badge-green-bg: #001a00;
+  --badge-green-text: #4ade80;
+  --badge-red-bg: #1a0000;
+  --badge-red-text: #fb7185;
+  --badge-yellow-bg: #1a1000;
+  --badge-yellow-text: #facc15;
+  --badge-emerald-bg: #001a00;
+  --badge-emerald-text: #4ade80;
+  --badge-rose-bg: #1a0000;
+  --badge-rose-text: #fb7185;
+  --badge-sky-bg: #000d1a;
+  --badge-sky-text: #7dd3fc;
+  --badge-slate-bg: #1e293b;
+  --badge-slate-text: #94a3b8;
+}
+
+/* ---- Dracula ---- */
+[data-theme="dracula"] {
+  --bg-primary: #282a36;
+  --bg-secondary: #3c3f51;
+  --bg-tertiary: #44475a;
+  --bg-inverse: #f8f8f2;
+  --bg-hover: #44475a;
+
+  --text-primary: #f8f8f2;
+  --text-secondary: #8892a4;
+  --text-muted: #6272a4;
+  --text-inverse: #282a36;
+
+  --border-primary: #44475a;
+  --border-secondary: #3c3f51;
+
+  --accent: #bd93f9;
+  --accent-hover: #cda9ff;
+  --accent-text: #282a36;
+
+  --color-scheme: dark;
+  --logo-bg: #f8f8f2;
+  --logo-text: #282a36;
+
+  --success-bg: #3c3f51;
+  --success-text: #50fa7b;
+  --success-border: #50fa7b;
+  --warning-bg: #3c3f51;
+  --warning-text: #f1fa8c;
+  --warning-border: #f1fa8c;
+  --error-bg: #3c3f51;
+  --error-text: #ff5555;
+  --error-border: #ff5555;
+  --info-bg: #3c3f51;
+  --info-text: #8be9fd;
+  --info-border: #8be9fd;
+
+  --input-bg: #3c3f51;
+  --input-border: #44475a;
+  --input-focus: #bd93f9;
+
+  --badge-green-bg: #3c3f51;
+  --badge-green-text: #50fa7b;
+  --badge-red-bg: #3c3f51;
+  --badge-red-text: #ff5555;
+  --badge-yellow-bg: #3c3f51;
+  --badge-yellow-text: #f1fa8c;
+  --badge-emerald-bg: #3c3f51;
+  --badge-emerald-text: #50fa7b;
+  --badge-rose-bg: #3c3f51;
+  --badge-rose-text: #ff5555;
+  --badge-sky-bg: #3c3f51;
+  --badge-sky-text: #8be9fd;
+  --badge-slate-bg: #44475a;
+  --badge-slate-text: #8892a4;
+}
+
+/* ---- Solarized Dark ---- */
+[data-theme="solarized"] {
+  --bg-primary: #002b36;
+  --bg-secondary: #073642;
+  --bg-tertiary: #586e75;
+  --bg-inverse: #fdf6e3;
+  --bg-hover: #073642;
+
+  --text-primary: #839496;
+  --text-secondary: #93a1a1;
+  --text-muted: #657b83;
+  --text-inverse: #002b36;
+
+  --border-primary: #073642;
+  --border-secondary: #586e75;
+
+  --accent: #268bd2;
+  --accent-hover: #3a9be6;
+  --accent-text: #fdf6e3;
+
+  --color-scheme: dark;
+  --logo-bg: #fdf6e3;
+  --logo-text: #002b36;
+
+  --success-bg: #073642;
+  --success-text: #859900;
+  --success-border: #859900;
+  --warning-bg: #073642;
+  --warning-text: #b58900;
+  --warning-border: #b58900;
+  --error-bg: #073642;
+  --error-text: #dc322f;
+  --error-border: #dc322f;
+  --info-bg: #073642;
+  --info-text: #268bd2;
+  --info-border: #268bd2;
+
+  --input-bg: #073642;
+  --input-border: #586e75;
+  --input-focus: #268bd2;
+
+  --badge-green-bg: #073642;
+  --badge-green-text: #859900;
+  --badge-red-bg: #073642;
+  --badge-red-text: #dc322f;
+  --badge-yellow-bg: #073642;
+  --badge-yellow-text: #b58900;
+  --badge-emerald-bg: #073642;
+  --badge-emerald-text: #859900;
+  --badge-rose-bg: #073642;
+  --badge-rose-text: #dc322f;
+  --badge-sky-bg: #073642;
+  --badge-sky-text: #268bd2;
+  --badge-slate-bg: #586e75;
+  --badge-slate-text: #93a1a1;
+}
+
+/* ---- Catppuccin Mocha ---- */
+[data-theme="catppuccin"] {
+  --bg-primary: #1e1e2e;
+  --bg-secondary: #313244;
+  --bg-tertiary: #45475a;
+  --bg-inverse: #cdd6f4;
+  --bg-hover: #45475a;
+
+  --text-primary: #cdd6f4;
+  --text-secondary: #a6adc8;
+  --text-muted: #6c7086;
+  --text-inverse: #1e1e2e;
+
+  --border-primary: #45475a;
+  --border-secondary: #313244;
+
+  --accent: #cba6f7;
+  --accent-hover: #dbb6ff;
+  --accent-text: #1e1e2e;
+
+  --color-scheme: dark;
+  --logo-bg: #cdd6f4;
+  --logo-text: #1e1e2e;
+
+  --success-bg: #313244;
+  --success-text: #a6e3a1;
+  --success-border: #a6e3a1;
+  --warning-bg: #313244;
+  --warning-text: #f9e2af;
+  --warning-border: #f9e2af;
+  --error-bg: #313244;
+  --error-text: #f38ba8;
+  --error-border: #f38ba8;
+  --info-bg: #313244;
+  --info-text: #89b4fa;
+  --info-border: #89b4fa;
+
+  --input-bg: #313244;
+  --input-border: #45475a;
+  --input-focus: #cba6f7;
+
+  --badge-green-bg: #313244;
+  --badge-green-text: #a6e3a1;
+  --badge-red-bg: #313244;
+  --badge-red-text: #f38ba8;
+  --badge-yellow-bg: #313244;
+  --badge-yellow-text: #f9e2af;
+  --badge-emerald-bg: #313244;
+  --badge-emerald-text: #a6e3a1;
+  --badge-rose-bg: #313244;
+  --badge-rose-text: #f38ba8;
+  --badge-sky-bg: #313244;
+  --badge-sky-text: #89b4fa;
+  --badge-slate-bg: #45475a;
+  --badge-slate-text: #a6adc8;
+}
+
+/* ---- Tokyo Night ---- */
+[data-theme="tokyo-night"] {
+  --bg-primary: #1a1b26;
+  --bg-secondary: #24283b;
+  --bg-tertiary: #2f3340;
+  --bg-inverse: #c0caf5;
+  --bg-hover: #2f3340;
+
+  --text-primary: #c0caf5;
+  --text-secondary: #a9b1d6;
+  --text-muted: #565f89;
+  --text-inverse: #1a1b26;
+
+  --border-primary: #2f3340;
+  --border-secondary: #24283b;
+
+  --accent: #7aa2f7;
+  --accent-hover: #8ab2ff;
+  --accent-text: #1a1b26;
+
+  --color-scheme: dark;
+  --logo-bg: #c0caf5;
+  --logo-text: #1a1b26;
+
+  --success-bg: #24283b;
+  --success-text: #9ece6a;
+  --success-border: #9ece6a;
+  --warning-bg: #24283b;
+  --warning-text: #e0af68;
+  --warning-border: #e0af68;
+  --error-bg: #24283b;
+  --error-text: #f7768e;
+  --error-border: #f7768e;
+  --info-bg: #24283b;
+  --info-text: #7dcfff;
+  --info-border: #7dcfff;
+
+  --input-bg: #24283b;
+  --input-border: #2f3340;
+  --input-focus: #7aa2f7;
+
+  --badge-green-bg: #24283b;
+  --badge-green-text: #9ece6a;
+  --badge-red-bg: #24283b;
+  --badge-red-text: #f7768e;
+  --badge-yellow-bg: #24283b;
+  --badge-yellow-text: #e0af68;
+  --badge-emerald-bg: #24283b;
+  --badge-emerald-text: #9ece6a;
+  --badge-rose-bg: #24283b;
+  --badge-rose-text: #f7768e;
+  --badge-sky-bg: #24283b;
+  --badge-sky-text: #7dcfff;
+  --badge-slate-bg: #2f3340;
+  --badge-slate-text: #a9b1d6;
+}
+
+/* ---- Gruvbox Dark ---- */
+[data-theme="gruvbox"] {
+  --bg-primary: #282828;
+  --bg-secondary: #3c3836;
+  --bg-tertiary: #504945;
+  --bg-inverse: #ebdbb2;
+  --bg-hover: #504945;
+
+  --text-primary: #ebdbb2;
+  --text-secondary: #d5c4a1;
+  --text-muted: #928374;
+  --text-inverse: #282828;
+
+  --border-primary: #504945;
+  --border-secondary: #3c3836;
+
+  --accent: #fabd2f;
+  --accent-hover: #facd3f;
+  --accent-text: #282828;
+
+  --color-scheme: dark;
+  --logo-bg: #ebdbb2;
+  --logo-text: #282828;
+
+  --success-bg: #3c3836;
+  --success-text: #b8bb26;
+  --success-border: #b8bb26;
+  --warning-bg: #3c3836;
+  --warning-text: #fabd2f;
+  --warning-border: #fabd2f;
+  --error-bg: #3c3836;
+  --error-text: #fb4934;
+  --error-border: #fb4934;
+  --info-bg: #3c3836;
+  --info-text: #83a598;
+  --info-border: #83a598;
+
+  --input-bg: #3c3836;
+  --input-border: #504945;
+  --input-focus: #fabd2f;
+
+  --badge-green-bg: #3c3836;
+  --badge-green-text: #b8bb26;
+  --badge-red-bg: #3c3836;
+  --badge-red-text: #fb4934;
+  --badge-yellow-bg: #3c3836;
+  --badge-yellow-text: #fabd2f;
+  --badge-emerald-bg: #3c3836;
+  --badge-emerald-text: #b8bb26;
+  --badge-rose-bg: #3c3836;
+  --badge-rose-text: #fb4934;
+  --badge-sky-bg: #3c3836;
+  --badge-sky-text: #83a598;
+  --badge-slate-bg: #504945;
+  --badge-slate-text: #d5c4a1;
+}

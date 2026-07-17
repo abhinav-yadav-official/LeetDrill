@@ -15,7 +15,7 @@ import (
 //go:embed templates/*.html partials/*.html
 var assetsFS embed.FS
 
-//go:embed static/*.png static/*.ico
+//go:embed static/*.png static/*.ico static/*.svg static/*.css static/*.js
 var staticFS embed.FS
 
 // Static returns an embedded static asset (favicon PNGs) by file name.
@@ -49,6 +49,8 @@ func NewRendererWithBasePath(basePath string) (*Renderer, error) {
 		"hasItems":    func(n int) bool { return n > 0 },
 		"ldLogo":      ldLogo,
 		"progressPct": progressPct,
+		"divf":        func(a, b int) float64 { return float64(a) / float64(b) },
+		"printf":      fmt.Sprintf,
 	}
 
 	base, err := assetsFS.ReadFile("templates/_base.html")
@@ -283,8 +285,8 @@ func labelForMistakeTag(tag any) string {
 
 func ldLogo() template.HTML {
 	return template.HTML(`<svg aria-label="LeetDrill logo" role="img" viewBox="0 0 64 64" class="h-8 w-8 shrink-0 rounded-md">
-          <rect width="64" height="64" rx="12" fill="#18181b"></rect>
-          <text x="32" y="39" text-anchor="middle" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="24" font-weight="800" fill="#f4f4f5">LD</text>
+          <rect width="64" height="64" rx="12" fill="var(--logo-bg)"></rect>
+          <text x="32" y="39" text-anchor="middle" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="24" font-weight="800" fill="var(--logo-text)">LD</text>
         </svg>`)
 }
 

@@ -208,6 +208,8 @@ func (s *server) router() http.Handler {
 	r.Get("/favicon-32.png", handleStaticPNG("favicon-32.png"))
 	r.Get("/apple-touch-icon.png", handleStaticPNG("apple-touch-icon.png"))
 	r.Get("/icon-512.png", handleStaticPNG("icon-512.png"))
+	r.Get("/themes.css", handleStaticAsset("themes.css", "text/css"))
+	r.Get("/theme-loader.js", handleStaticAsset("theme-loader.js", "application/javascript"))
 
 	r.Get("/login", s.handleLoginPage)
 	r.Post("/login", s.handleLoginSubmit)
@@ -305,86 +307,74 @@ func handleStaticAsset(name, contentType string) http.HandlerFunc {
 const faviconSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="LeetDrill logo">
   <rect width="64" height="64" rx="12" fill="#000000"/>
   <text x="32" y="39" text-anchor="middle" font-family="system-ui,sans-serif" font-size="24" font-weight="800" fill="#ffffff">LD</text>
-</svg>`
+        </svg>`
 
 const ldLogoSVG = `<svg aria-label="LeetDrill logo" role="img" viewBox="0 0 64 64" class="h-8 w-8 shrink-0 rounded-md">
-          <rect width="64" height="64" rx="12" fill="#000000"></rect>
-          <text x="32" y="39" text-anchor="middle" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="24" font-weight="800" fill="#ffffff">LD</text>
+          <rect width="64" height="64" rx="12" fill="var(--logo-bg)"></rect>
+          <text x="32" y="39" text-anchor="middle" font-family="Inter, ui-sans-serif, system-ui, -apple-system, sans-serif" font-size="24" font-weight="800" fill="var(--logo-text)">LD</text>
         </svg>`
 
 const authBrand = `<div class="flex items-center gap-2 text-sm font-semibold uppercase tracking-normal text-zinc-500">` + ldLogoSVG + `<span>LeetDrill</span></div>`
 
-const themeHead = `<script>
+const themeHead = `<link rel="stylesheet" href="themes.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
+    <script>
       (function () {
-        var key = "leetdrill-theme";
-        var modes = ["system", "dark", "light"];
-        function clean(mode) {
-          return modes.indexOf(mode) === -1 ? "system" : mode;
+        var key = "ld-theme";
+        var themes = ["system","light","dark","high-contrast","night","dracula","solarized","catppuccin","tokyo-night","gruvbox"];
+        function clean(t){return themes.indexOf(t)===-1?"system":t}
+        function wantsDark(t){return t==="dark"||t==="night"||t==="dracula"||t==="solarized"||t==="catppuccin"||t==="tokyo-night"||t==="gruvbox"||(t==="system"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme:dark)").matches)}
+        function effective(t){return t==="system"?wantsDark(t)?"dark":"light":t}
+        function label(t){switch(t){case"high-contrast":return"High Contrast";case"catppuccin":return"Catppuccin";case"tokyo-night":return"Tokyo Night";default:return t.charAt(0).toUpperCase()+t.slice(1)}}
+        function apply(t){
+          t=clean(t);var e=effective(t);
+          document.documentElement.classList.toggle("dark",wantsDark(t));
+          document.documentElement.setAttribute("data-theme",e);
+          document.querySelectorAll("[data-theme-label]").forEach(function(e){e.textContent=label(t)});
+          document.querySelectorAll("[data-theme-toggle]").forEach(function(e){e.setAttribute("aria-label","Theme: "+label(t))});
         }
-        function wantsDark(mode) {
-          return mode === "dark" || (mode === "system" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
-        }
-        function apply(mode) {
-          mode = clean(mode);
-          document.documentElement.classList.toggle("dark", wantsDark(mode));
-          document.documentElement.dataset.theme = mode;
-          var label = mode.charAt(0).toUpperCase() + mode.slice(1);
-          document.querySelectorAll("[data-theme-label]").forEach(function (el) { el.textContent = label; });
-          document.querySelectorAll("[data-theme-toggle]").forEach(function (el) { el.setAttribute("aria-label", "Theme: " + label); });
-        }
-        window.leetdrillTheme = {
-          apply: apply,
-          next: function () {
-            var current = clean(localStorage.getItem(key) || "system");
-            var next = modes[(modes.indexOf(current) + 1) %% modes.length];
-            localStorage.setItem(key, next);
-            apply(next);
-          }
-        };
-        try { apply(localStorage.getItem(key) || "system"); } catch (_) { apply("system"); }
-        document.addEventListener("DOMContentLoaded", function () {
-          document.querySelectorAll("[data-theme-toggle]").forEach(function (el) {
-            el.addEventListener("click", window.leetdrillTheme.next);
-          });
-          apply(clean(localStorage.getItem(key) || "system"));
-        });
-        if (window.matchMedia) {
-          window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function () {
-            apply(clean(localStorage.getItem(key) || "system"));
-          });
-        }
+                window.leetdrillTheme={apply:apply,set:function(t){t=clean(t);try{localStorage.setItem(key,t)}catch(_){}apply(t)},next:function(){var c=clean(function(){try{return localStorage.getItem(key)||"system"}catch(_){return"system"}}());var i=themes.indexOf(c),n=i+1;this.set(themes[n>=themes.length?0:n])}};
+        try{apply(localStorage.getItem(key)||"system")}catch(_){apply("system")}
+        document.addEventListener("DOMContentLoaded",function(){try{apply(localStorage.getItem(key)||"system")}catch(_){apply("system")};document.querySelectorAll("[data-theme-toggle]").forEach(function(e){e.addEventListener("click",function(){window.leetdrillTheme.next()})})});
+        if(window.matchMedia)window.matchMedia("(prefers-color-scheme:dark)").addEventListener("change",function(){try{apply(localStorage.getItem(key)||"system")}catch(_){apply("system")}});
       })();
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-      :root { color-scheme: light; }
-      .dark { color-scheme: dark; }
-      .dark body, .dark .bg-zinc-50 { background-color: #09090b !important; color: #f4f4f5 !important; }
-      .dark .bg-white { background-color: #18181b !important; }
-      .dark .bg-zinc-100 { background-color: #27272a !important; }
-      .dark .bg-zinc-900 { background-color: #f4f4f5 !important; color: #09090b !important; }
-      .dark svg[aria-label="LeetDrill logo"] rect { fill: #f4f4f5 !important; }
-      .dark svg[aria-label="LeetDrill logo"] text { fill: #18181b !important; }
-      .dark .hover\:bg-zinc-50:hover, .dark .hover\:bg-zinc-100:hover { background-color: #27272a !important; }
-      .dark .hover\:bg-zinc-800:hover { background-color: #e4e4e7 !important; }
-      .dark .text-zinc-950, .dark .text-zinc-900, .dark .text-zinc-800, .dark .text-zinc-700 { color: #e4e4e7 !important; }
-      .dark .text-zinc-600, .dark .text-zinc-500 { color: #a1a1aa !important; }
-      .dark .text-zinc-400 { color: #71717a !important; }
-      .dark .border-zinc-100, .dark .border-zinc-200, .dark .border-zinc-300 { border-color: #3f3f46 !important; }
-      .dark .divide-zinc-100 > :not([hidden]) ~ :not([hidden]), .dark .divide-zinc-200 > :not([hidden]) ~ :not([hidden]) { border-color: #27272a !important; }
-      .dark .bg-sky-50 { background-color: #082f49 !important; }
-      .dark .border-sky-200 { border-color: #0369a1 !important; }
-      .dark .text-sky-900 { color: #bae6fd !important; }
-      .dark .bg-emerald-50 { background-color: #022c22 !important; }
-      .dark .border-emerald-200 { border-color: #047857 !important; }
-      .dark .text-emerald-950, .dark .text-emerald-900, .dark .text-emerald-800 { color: #a7f3d0 !important; }
-      .dark .rounded-full.bg-emerald-100.text-emerald-800 { color: #065f46 !important; }
-      .dark .bg-rose-50 { background-color: #4c0519 !important; }
-      .dark .border-rose-200 { border-color: #be123c !important; }
-      .dark .text-rose-600 { color: #fda4af !important; }
-      .dark input, .dark select, .dark textarea { background-color: #18181b !important; border-color: #3f3f46 !important; color: #f4f4f5 !important; }
-      .dark input::placeholder, .dark textarea::placeholder { color: #71717a !important; }
-      .dark .shadow-sm { box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.35) !important; }
+      :root{color-scheme:var(--color-scheme,light)}
+      body{background-color:var(--bg-primary);color:var(--text-primary)}
+      .bg-zinc-50{background-color:var(--bg-primary)!important}
+      .bg-white{background-color:var(--bg-secondary)!important}
+      .bg-zinc-100{background-color:var(--bg-tertiary)!important}
+      .bg-zinc-900{background-color:var(--bg-inverse)!important;color:var(--text-inverse)!important}
+      .text-zinc-950{color:var(--text-primary)!important}
+      .text-zinc-900,.text-zinc-800,.text-zinc-700{color:var(--text-primary)!important}
+      .text-zinc-600,.text-zinc-500{color:var(--text-secondary)!important}
+      .text-zinc-400{color:var(--text-muted)!important}
+      .border-zinc-100,.border-zinc-200,.border-zinc-300{border-color:var(--border-primary)!important}
+      .divide-zinc-100>:not([hidden])~:not([hidden]),.divide-zinc-200>:not([hidden])~:not([hidden]){border-color:var(--border-secondary)!important}
+      .hover\\:bg-zinc-50:hover,.hover\\:bg-zinc-100:hover,.hover\\:bg-zinc-800:hover{background-color:var(--bg-hover)!important}
+      .bg-sky-50{background-color:var(--info-bg)!important}
+      .border-sky-200{border-color:var(--info-border)!important}
+      .text-sky-900{color:var(--info-text)!important}
+      .bg-emerald-50{background-color:var(--success-bg)!important}
+      .border-emerald-200{border-color:var(--success-border)!important}
+      .text-emerald-950,.text-emerald-900,.text-emerald-800{color:var(--success-text)!important}
+      .rounded-full.bg-emerald-100.text-emerald-800{background-color:var(--badge-emerald-bg)!important;color:var(--badge-emerald-text)!important}
+      .bg-rose-50{background-color:var(--error-bg)!important}
+      .border-rose-200{border-color:var(--error-border)!important}
+      .text-rose-600{color:var(--error-text)!important}
+      .bg-rose-100.text-rose-800{background-color:var(--badge-rose-bg)!important;color:var(--badge-rose-text)!important}
+      .bg-sky-100.text-sky-800{background-color:var(--badge-sky-bg)!important;color:var(--badge-sky-text)!important}
+      .bg-slate-200.text-slate-700{background-color:var(--badge-slate-bg)!important;color:var(--badge-slate-text)!important}
+      .bg-green-100.text-green-800{background-color:var(--badge-green-bg)!important;color:var(--badge-green-text)!important}
+      .bg-red-100.text-red-800{background-color:var(--badge-red-bg)!important;color:var(--badge-red-text)!important}
+      .bg-yellow-100.text-yellow-800{background-color:var(--badge-yellow-bg)!important;color:var(--badge-yellow-text)!important}
+      input,select,textarea{background-color:var(--input-bg)!important;border-color:var(--input-border)!important;color:var(--text-primary)!important}
+      input::placeholder,textarea::placeholder{color:var(--text-muted)!important}
+      .shadow-sm{box-shadow:0 1px 2px 0 rgb(0 0 0 / 0.35)!important}
+      svg[aria-label="LeetDrill logo"] rect{fill:var(--logo-bg)!important}
+      svg[aria-label="LeetDrill logo"] text{fill:var(--logo-text)!important}
     </style>`
 
 // authFaviconSEO is injected into every auth page <head> after the <title>.
@@ -402,8 +392,8 @@ const authFaviconSEO = `<meta name="description" content="LeetDrill — daily Le
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">`
 
-const authThemeToggle = `<button type="button" data-theme-toggle class="fixed right-4 top-4 z-10 rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 shadow-sm hover:bg-zinc-50">
-      Theme: <span data-theme-label>System</span>
+const authThemeToggle = `<button type="button" data-theme-toggle class="fixed right-4 top-4 z-10 flex items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 shadow-sm hover:bg-zinc-50" aria-label="Theme: System">
+      <i class="ph ph-palette"></i> <span data-theme-label>System</span>
     </button>`
 
 const loginPage = `<!doctype html>
@@ -444,7 +434,7 @@ const loginPage = `<!doctype html>
           <h2 class="text-xl font-semibold tracking-normal">Sign in</h2>
           <p class="mt-2 text-sm text-zinc-600" aria-live="polite">%s</p>
         </div>
-        <a class="mt-6 flex w-full items-center justify-center rounded-md border border-zinc-300 bg-white px-4 py-2.5 text-sm font-medium text-zinc-800 hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2" href="%s">Continue with Google</a>
+        <a class="mt-6 flex w-full items-center justify-center gap-2 rounded-md border border-zinc-300 bg-white px-4 py-2.5 text-sm font-medium text-zinc-800 hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2" href="%s"><svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg> Continue with Google</a>
         <div class="mt-5 flex items-center gap-3 text-xs uppercase tracking-normal text-zinc-400">
           <div class="h-px flex-1 bg-zinc-200"></div>
           <span>Email</span>
@@ -508,7 +498,7 @@ const signupPage = `<!doctype html>
           <h2 class="text-xl font-semibold tracking-normal">Create account</h2>
           <p class="mt-2 text-sm text-zinc-600" aria-live="polite">%s</p>
         </div>
-        <a class="mt-6 flex w-full items-center justify-center rounded-md border border-zinc-300 bg-white px-4 py-2.5 text-sm font-medium text-zinc-800 hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2" href="%s">Continue with Google</a>
+        <a class="mt-6 flex w-full items-center justify-center gap-2 rounded-md border border-zinc-300 bg-white px-4 py-2.5 text-sm font-medium text-zinc-800 hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2" href="%s"><svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg> Continue with Google</a>
         <div class="mt-5 flex items-center gap-3 text-xs uppercase tracking-normal text-zinc-400">
           <div class="h-px flex-1 bg-zinc-200"></div>
           <span>Email</span>
