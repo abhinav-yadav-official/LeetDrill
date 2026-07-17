@@ -25,3 +25,6 @@ checkpoints.txt
 # Public extension store docs (keep tracked)
 !extension/PRIVACY.md
 !extension/STORE_LISTING.md
+
+# Public cheatsheet source (rendered at /cheatsheet, keep tracked)
+!docs/cheatsheet/*.md

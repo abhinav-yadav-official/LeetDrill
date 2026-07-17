@@ -226,6 +226,7 @@ func (s *server) router() http.Handler {
 	r.Post("/forgot", s.handleForgotSubmit)
 	r.Get("/reset", s.handleResetPage)
 	r.Post("/reset", s.handleResetSubmit)
+	r.Get("/cheatsheet", s.handleCheatsheet)
 
 	r.Group(func(r chi.Router) {
 		r.Use(s.authmw.RequireWebSession)
@@ -1799,6 +1800,16 @@ func (s *server) handlePatterns(w http.ResponseWriter, r *http.Request) {
 
 type patternsPageData struct {
 	Patterns []store.PatternStrength
+}
+
+// handleCheatsheet serves the constraint/complexity/pattern reference page.
+// Public: no login required, so it can be shared and linked directly.
+func (s *server) handleCheatsheet(w http.ResponseWriter, r *http.Request) {
+	s.page(w, "cheatsheet", web.PageData{
+		Title:   "Cheatsheet",
+		UserID:  auth.UserID(r.Context()),
+		NavItem: "cheatsheet",
+	})
 }
 
 func (s *server) handleStats(w http.ResponseWriter, r *http.Request) {

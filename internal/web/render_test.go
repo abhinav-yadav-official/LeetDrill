@@ -23,6 +23,7 @@ func TestNewRendererLoadsCorePagesAndPartials(t *testing.T) {
 		"stats",
 		"settings",
 		"session_today",
+		"cheatsheet",
 	} {
 		if _, ok := r.pages[name]; !ok {
 			t.Fatalf("page %q not loaded", name)

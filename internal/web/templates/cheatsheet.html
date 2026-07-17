@@ -1,0 +1,250 @@
+{{define "content"}}
+<div class="flex flex-col gap-6">
+  <div>
+    <h1 class="text-2xl font-semibold tracking-tight">Complexity &amp; Pattern Cheatsheet</h1>
+    <p class="mt-1 text-sm text-zinc-600">Guess the target complexity from the constraints, then match it to an algorithm family. No login required &mdash; share this page directly.</p>
+  </div>
+
+  <nav class="flex flex-wrap gap-2 rounded-lg border border-zinc-200 bg-white p-3 text-xs">
+    <a href="#constraints" class="rounded-full bg-zinc-100 px-3 py-1.5 font-medium text-zinc-700 hover:bg-zinc-200">Constraints &rarr; complexity</a>
+    <a href="#gotchas" class="rounded-full bg-zinc-100 px-3 py-1.5 font-medium text-zinc-700 hover:bg-zinc-200">Gotchas</a>
+    <a href="#reverse" class="rounded-full bg-zinc-100 px-3 py-1.5 font-medium text-zinc-700 hover:bg-zinc-200">Complexity &rarr; algorithm</a>
+    <a href="#patterns" class="rounded-full bg-zinc-100 px-3 py-1.5 font-medium text-zinc-700 hover:bg-zinc-200">Signal &rarr; pattern</a>
+    <a href="#supersets" class="rounded-full bg-zinc-100 px-3 py-1.5 font-medium text-zinc-700 hover:bg-zinc-200">Pattern supersets</a>
+    <a href="#howto" class="rounded-full bg-zinc-100 px-3 py-1.5 font-medium text-zinc-700 hover:bg-zinc-200">Simplify a problem</a>
+    <a href="#glossary" class="rounded-full bg-zinc-100 px-3 py-1.5 font-medium text-zinc-700 hover:bg-zinc-200">Glossary</a>
+  </nav>
+
+  <section id="constraints" class="rounded-lg border border-zinc-200 bg-white p-5 scroll-mt-4">
+    <h2 class="text-lg font-semibold">Constraints &rarr; complexity</h2>
+    <p class="mt-2 text-sm text-zinc-600">Judges size <code>n</code> so exactly one complexity class survives the time limit &mdash; roughly <strong>10<sup>8</sup> simple operations/second</strong> (C++-class constant factor; Python is often 5&ndash;20x slower, which is why LeetCode's limits are generous). Divide the time limit by that rate, find the complexity that fits.</p>
+
+    <h3 class="mt-4 text-sm font-semibold text-zinc-900">Conservative upper bounds</h3>
+    <div class="mt-2 overflow-x-auto rounded-md border border-zinc-200">
+      <table class="min-w-full divide-y divide-zinc-100 text-sm">
+        <thead class="bg-zinc-50">
+          <tr>
+            <th class="px-3 py-2 text-left font-medium text-zinc-700">n up to</th>
+            <th class="px-3 py-2 text-left font-medium text-zinc-700">Complexity budget</th>
+            <th class="px-3 py-2 text-left font-medium text-zinc-700">Typical technique</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-zinc-100">
+          <tr><td class="px-3 py-2">10</td><td class="px-3 py-2 font-mono text-xs">O(n!), O(n^7), O(n^6)</td><td class="px-3 py-2 text-zinc-600">brute-force permutations, deeply nested loops</td></tr>
+          <tr><td class="px-3 py-2">20</td><td class="px-3 py-2 font-mono text-xs">O(2^n &middot; n), O(n^5)</td><td class="px-3 py-2 text-zinc-600">bitmask DP / subset enumeration, meet-in-the-middle</td></tr>
+          <tr><td class="px-3 py-2">80</td><td class="px-3 py-2 font-mono text-xs">O(n^4)</td><td class="px-3 py-2 text-zinc-600">4 nested loops, brute force over 4 indices</td></tr>
+          <tr><td class="px-3 py-2">400</td><td class="px-3 py-2 font-mono text-xs">O(n^3)</td><td class="px-3 py-2 text-zinc-600">Floyd-Warshall, interval DP, triple nested loops</td></tr>
+          <tr><td class="px-3 py-2">7,500</td><td class="px-3 py-2 font-mono text-xs">O(n^2)</td><td class="px-3 py-2 text-zinc-600">nested loops, simple O(n)&times;O(n) DP, brute-force pairs</td></tr>
+          <tr><td class="px-3 py-2">7&times;10^4</td><td class="px-3 py-2 font-mono text-xs">O(n&radic;n)</td><td class="px-3 py-2 text-zinc-600">sqrt decomposition, block-based algorithms</td></tr>
+          <tr><td class="px-3 py-2">5&times;10^5</td><td class="px-3 py-2 font-mono text-xs">O(n log n)</td><td class="px-3 py-2 text-zinc-600">sorting, heaps, binary search + scan, segment/BIT builds</td></tr>
+          <tr><td class="px-3 py-2">5&times;10^6</td><td class="px-3 py-2 font-mono text-xs">O(n)</td><td class="px-3 py-2 text-zinc-600">linear scan, two pointers, prefix sums, counting sort, hashing</td></tr>
+          <tr><td class="px-3 py-2">10^9</td><td class="px-3 py-2 font-mono text-xs">O(log n), O(&radic;n)</td><td class="px-3 py-2 text-zinc-600">binary search, math/number theory, fast exponentiation</td></tr>
+          <tr><td class="px-3 py-2">10^18</td><td class="px-3 py-2 font-mono text-xs">O(log n), O(log&sup2; n), O(1)</td><td class="px-3 py-2 text-zinc-600">binary search on value, matrix exponentiation, closed-form math</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="mt-2 text-xs text-zinc-500">Source: <a class="underline hover:text-zinc-700" href="https://usaco.guide/bronze/time-comp" target="_blank" rel="noreferrer">USACO Guide &mdash; Time Complexity</a>, cross-checked against the <a class="underline hover:text-zinc-700" href="https://codeforces.com/blog/entry/21772" target="_blank" rel="noreferrer">Codeforces 10^8-ops rule of thumb</a>.</p>
+
+    <h3 class="mt-5 text-sm font-semibold text-zinc-900">LeetCode gut-check (looser, limits are generous)</h3>
+    <div class="mt-2 overflow-x-auto rounded-md border border-zinc-200">
+      <table class="min-w-full divide-y divide-zinc-100 text-sm">
+        <thead class="bg-zinc-50">
+          <tr>
+            <th class="px-3 py-2 text-left font-medium text-zinc-700">n up to</th>
+            <th class="px-3 py-2 text-left font-medium text-zinc-700">Assume</th>
+            <th class="px-3 py-2 text-left font-medium text-zinc-700">Reach for</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-zinc-100">
+          <tr><td class="px-3 py-2">~10&ndash;12</td><td class="px-3 py-2 text-zinc-600">exponential is fine</td><td class="px-3 py-2 text-zinc-600">full permutations / brute force</td></tr>
+          <tr><td class="px-3 py-2">~20&ndash;24</td><td class="px-3 py-2 font-mono text-xs">O(2^n)</td><td class="px-3 py-2 text-zinc-600">bitmask DP, subsets, backtracking with pruning</td></tr>
+          <tr><td class="px-3 py-2">~500</td><td class="px-3 py-2 font-mono text-xs">O(n^3)</td><td class="px-3 py-2 text-zinc-600">triple loop DP, Floyd-Warshall</td></tr>
+          <tr><td class="px-3 py-2">~5,000</td><td class="px-3 py-2 font-mono text-xs">O(n^2)</td><td class="px-3 py-2 text-zinc-600">pairwise brute force, simple DP</td></tr>
+          <tr><td class="px-3 py-2">~10^5</td><td class="px-3 py-2 font-mono text-xs">O(n log n)</td><td class="px-3 py-2 text-zinc-600">sort + scan, heap, binary search, divide &amp; conquer</td></tr>
+          <tr><td class="px-3 py-2">~10^6&ndash;10^7</td><td class="px-3 py-2 font-mono text-xs">O(n) or O(n log n)</td><td class="px-3 py-2 text-zinc-600">single pass, two pointers, hashing</td></tr>
+          <tr><td class="px-3 py-2">~10^8+</td><td class="px-3 py-2 font-mono text-xs">O(log n) or O(1)</td><td class="px-3 py-2 text-zinc-600">binary search on answer, math</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="mt-2 text-sm text-zinc-600">Two constraints in one problem (grid <code>n&times;m</code>, or <code>n</code> elements / <code>q</code> queries) multiply: the real work is <code>O(n&middot;m)</code> or <code>O(n&middot;q)</code>, not <code>O(n)</code>.</p>
+  </section>
+
+  <section id="gotchas" class="rounded-lg border border-zinc-200 bg-white p-5 scroll-mt-4">
+    <h2 class="text-lg font-semibold">Common gotchas</h2>
+    <ul class="mt-3 flex flex-col gap-3 text-sm text-zinc-700">
+      <li><strong class="text-zinc-900">Sum-of-constraints across test cases.</strong> "1 &le; T &le; 1000, sum of n &le; 2&times;10^5" means treat the <em>sum</em> as the real n, not the per-case bound.</li>
+      <li><strong class="text-zinc-900">Two-dimensional input.</strong> An n&times;m grid has n&middot;m cells &mdash; a "linear scan" over it is O(n&middot;m), not O(n).</li>
+      <li><strong class="text-zinc-900">Memory limit implies a complexity bound too.</strong> 256&nbsp;MB &divide; 4 bytes/int &approx; 6&times;10^7 ints. A DP table exceeding that needs a rolling array or a different approach, independent of the time budget.</li>
+      <li><strong class="text-zinc-900">Amortized vs worst-case.</strong> Dynamic array <code>push_back</code>/<code>append</code> is amortized O(1) but worst-case O(n) on one call; Union-Find with path compression + union by rank is amortized O(&alpha;(n)) &approx; O(1).</li>
+      <li><strong class="text-zinc-900">Expected vs adversarial worst-case.</strong> Hash map lookups are expected O(1) but worst-case O(n) under collisions; quickselect is expected O(n) but worst-case O(n^2) without randomized pivoting. Matters on Codeforces, rarely on LeetCode.</li>
+      <li><strong class="text-zinc-900">Recursion depth is a hidden constraint.</strong> O(n) recursion at n &sim; 10^5 can blow the call stack before it blows the time limit &mdash; go iterative or check the stack size.</li>
+      <li><strong class="text-zinc-900">Constant factor still matters at the boundary.</strong> O(n log n) via a segment tree carries a much bigger constant than O(n log n) from a single <code>sort()</code>. Near the edge of a budget, prefer the simpler structure.</li>
+    </ul>
+  </section>
+
+  <section id="reverse" class="rounded-lg border border-zinc-200 bg-white p-5 scroll-mt-4">
+    <h2 class="text-lg font-semibold">Complexity &rarr; algorithm family</h2>
+    <p class="mt-2 text-sm text-zinc-600">Once you know the target complexity, this narrows which families are even candidates.</p>
+    <div class="mt-3 overflow-x-auto rounded-md border border-zinc-200">
+      <table class="min-w-full divide-y divide-zinc-100 text-sm">
+        <thead class="bg-zinc-50">
+          <tr>
+            <th class="px-3 py-2 text-left font-medium text-zinc-700">Target</th>
+            <th class="px-3 py-2 text-left font-medium text-zinc-700">Reach for</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-zinc-100">
+          <tr><td class="px-3 py-2 font-mono text-xs">O(1)</td><td class="px-3 py-2 text-zinc-600">closed-form formula, precomputed/hashed lookup</td></tr>
+          <tr><td class="px-3 py-2 font-mono text-xs">O(log n)</td><td class="px-3 py-2 text-zinc-600">binary search (index or answer), balanced BST ops, fast exponentiation, GCD</td></tr>
+          <tr><td class="px-3 py-2 font-mono text-xs">O(&radic;n)</td><td class="px-3 py-2 text-zinc-600">prime factorization / primality by trial division, sqrt decomposition</td></tr>
+          <tr><td class="px-3 py-2 font-mono text-xs">O(n)</td><td class="px-3 py-2 text-zinc-600">single pass, two pointers, sliding window, prefix sums, Kadane's, counting sort, BFS/DFS on O(n) edges</td></tr>
+          <tr><td class="px-3 py-2 font-mono text-xs">O(n log n)</td><td class="px-3 py-2 text-zinc-600">sorting-based, heap (top-k / k-way merge), divide &amp; conquer, segment tree / BIT builds, closest-pair</td></tr>
+          <tr><td class="px-3 py-2 font-mono text-xs">O(n^2)</td><td class="px-3 py-2 text-zinc-600">brute-force pairs, simple 1D-state DP, dense-graph Dijkstra (array, no heap), insertion sort</td></tr>
+          <tr><td class="px-3 py-2 font-mono text-xs">O(n^3)</td><td class="px-3 py-2 text-zinc-600">Floyd-Warshall, naive matrix multiplication, interval DP, 3D DP</td></tr>
+          <tr><td class="px-3 py-2 font-mono text-xs">O(2^n)</td><td class="px-3 py-2 text-zinc-600">subset/bitmask DP, brute-force subset enumeration, meet-in-the-middle</td></tr>
+          <tr><td class="px-3 py-2 font-mono text-xs">O(n&middot;2^n)</td><td class="px-3 py-2 text-zinc-600">bitmask DP with an extra linear factor (e.g. TSP DP)</td></tr>
+          <tr><td class="px-3 py-2 font-mono text-xs">O(n!)</td><td class="px-3 py-2 text-zinc-600">brute-force permutations (e.g. exact TSP without DP)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="patterns" class="rounded-lg border border-zinc-200 bg-white p-5 scroll-mt-4">
+    <h2 class="text-lg font-semibold">Signal &rarr; pattern</h2>
+    <p class="mt-2 text-sm text-zinc-600">Most problems are one or two known patterns wearing a costume. Strip the flavor text, match the input shape and question against this list.</p>
+    <div class="mt-3 overflow-x-auto rounded-md border border-zinc-200">
+      <table class="min-w-full divide-y divide-zinc-100 text-sm">
+        <thead class="bg-zinc-50">
+          <tr>
+            <th class="px-3 py-2 text-left font-medium text-zinc-700">If the problem says / implies&hellip;</th>
+            <th class="px-3 py-2 text-left font-medium text-zinc-700">Reach for</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-zinc-100">
+          <tr><td class="px-3 py-2 text-zinc-600">contiguous subarray/substring with some property</td><td class="px-3 py-2 font-medium">sliding window</td></tr>
+          <tr><td class="px-3 py-2 text-zinc-600">sorted array, find a pair/triplet matching a sum</td><td class="px-3 py-2 font-medium">two pointers</td></tr>
+          <tr><td class="px-3 py-2 text-zinc-600">kth largest/smallest, &ldquo;top k&rdquo;</td><td class="px-3 py-2 font-medium">heap or quickselect</td></tr>
+          <tr><td class="px-3 py-2 text-zinc-600">all subsets / combinations / permutations</td><td class="px-3 py-2 font-medium">backtracking</td></tr>
+          <tr><td class="px-3 py-2 text-zinc-600">shortest path, unweighted graph or grid</td><td class="px-3 py-2 font-medium">BFS</td></tr>
+          <tr><td class="px-3 py-2 text-zinc-600">shortest path, weighted, non-negative edges</td><td class="px-3 py-2 font-medium">Dijkstra</td></tr>
+          <tr><td class="px-3 py-2 text-zinc-600">shortest path, negative edges allowed</td><td class="px-3 py-2 font-medium">Bellman-Ford</td></tr>
+          <tr><td class="px-3 py-2 text-zinc-600">all-pairs shortest path, small n (&le; ~400)</td><td class="px-3 py-2 font-medium">Floyd-Warshall</td></tr>
+          <tr><td class="px-3 py-2 text-zinc-600">connectivity / grouping / cycle detection, undirected</td><td class="px-3 py-2 font-medium">Union-Find (DSU)</td></tr>
+          <tr><td class="px-3 py-2 text-zinc-600">dependency order / prerequisites</td><td class="px-3 py-2 font-medium">topological sort</td></tr>
+          <tr><td class="px-3 py-2 text-zinc-600">minimum spanning tree</td><td class="px-3 py-2 font-medium">Kruskal or Prim</td></tr>
+          <tr><td class="px-3 py-2 text-zinc-600">range query, static array</td><td class="px-3 py-2 font-medium">prefix sum</td></tr>
+          <tr><td class="px-3 py-2 text-zinc-600">range query, array with updates</td><td class="px-3 py-2 font-medium">Fenwick tree (BIT) or segment tree</td></tr>
+          <tr><td class="px-3 py-2 text-zinc-600">&ldquo;next greater/smaller element&rdquo;</td><td class="px-3 py-2 font-medium">monotonic stack</td></tr>
+          <tr><td class="px-3 py-2 text-zinc-600">sliding window max/min</td><td class="px-3 py-2 font-medium">monotonic deque</td></tr>
+          <tr><td class="px-3 py-2 text-zinc-600">count ways / min cost, overlapping subproblems</td><td class="px-3 py-2 font-medium">dynamic programming</td></tr>
+          <tr><td class="px-3 py-2 text-zinc-600">0/1 choice per item under a capacity constraint</td><td class="px-3 py-2 font-medium">knapsack DP</td></tr>
+          <tr><td class="px-3 py-2 text-zinc-600">longest/shortest subsequence with ordering</td><td class="px-3 py-2 font-medium">sequence DP (LIS/LCS family)</td></tr>
+          <tr><td class="px-3 py-2 text-zinc-600">merge/select among overlapping intervals</td><td class="px-3 py-2 font-medium">sort by start/end + greedy or interval DP</td></tr>
+          <tr><td class="px-3 py-2 text-zinc-600">matching brackets / nesting / &ldquo;undo&rdquo;</td><td class="px-3 py-2 font-medium">stack</td></tr>
+          <tr><td class="px-3 py-2 text-zinc-600">detect cycle / find middle of a linked list</td><td class="px-3 py-2 font-medium">fast/slow pointers (Floyd's)</td></tr>
+          <tr><td class="px-3 py-2 text-zinc-600">running median of a stream</td><td class="px-3 py-2 font-medium">two heaps</td></tr>
+          <tr><td class="px-3 py-2 text-zinc-600">merge k sorted lists/arrays</td><td class="px-3 py-2 font-medium">heap (k-way merge)</td></tr>
+          <tr><td class="px-3 py-2 text-zinc-600">substring search / pattern matching</td><td class="px-3 py-2 font-medium">KMP, Z-function, or rolling hash</td></tr>
+          <tr><td class="px-3 py-2 text-zinc-600">word search, count islands, flood fill</td><td class="px-3 py-2 font-medium">DFS/BFS over the grid</td></tr>
+          <tr><td class="px-3 py-2 text-zinc-600">n &le; ~20, state is &ldquo;which subset is used&rdquo;</td><td class="px-3 py-2 font-medium">bitmask DP</td></tr>
+          <tr><td class="px-3 py-2 text-zinc-600">&ldquo;minimize the maximum&rdquo;, feasibility is monotonic</td><td class="px-3 py-2 font-medium">binary search on the answer</td></tr>
+          <tr><td class="px-3 py-2 text-zinc-600">prefix/suffix property over strings</td><td class="px-3 py-2 font-medium">trie</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="supersets" class="rounded-lg border border-zinc-200 bg-white p-5 scroll-mt-4">
+    <h2 class="text-lg font-semibold">Generic pattern supersets</h2>
+    <p class="mt-2 text-sm text-zinc-600">Narrow, named patterns nest inside broader families. When you don't recognize the exact pattern, recognizing the family narrows the search to 2&ndash;3 techniques instead of the full list above.</p>
+    <div class="mt-4 flex flex-col gap-4">
+      <div class="rounded-md border border-zinc-200 p-4">
+        <h3 class="font-medium">Window/pointer family</h3>
+        <p class="mt-1 text-sm text-zinc-600">Linear scan with pointer(s) maintaining an invariant over a contiguous range.</p>
+        <p class="mt-2 text-sm text-zinc-700"><span class="font-medium">Contains:</span> two pointers (converging), sliding window (expand/shrink), fast/slow pointers (cycle detection).</p>
+        <p class="mt-1 text-xs text-zinc-500">Recognize from: array/string, contiguous, O(n) or O(n log n) expected, no need to revisit passed elements.</p>
+      </div>
+      <div class="rounded-md border border-zinc-200 p-4">
+        <h3 class="font-medium">Search family</h3>
+        <p class="mt-1 text-sm text-zinc-600">Exhaustive exploration of a state space, with or without pruning.</p>
+        <p class="mt-2 text-sm text-zinc-700"><span class="font-medium">Contains:</span> DFS &sup; backtracking (DFS + undo on dead end). BFS is a sibling, not a subset &mdash; different traversal order, shortest-steps guarantee in unweighted graphs.</p>
+        <p class="mt-1 text-xs text-zinc-500">Recognize from: "all ways to...", "does a path exist...", tree/graph/grid input, n small enough for exponential blowup unless pruning/DP collapses it.</p>
+      </div>
+      <div class="rounded-md border border-zinc-200 p-4">
+        <h3 class="font-medium">Graph traversal family</h3>
+        <p class="mt-1 text-sm text-zinc-600">Superset of every graph algorithm.</p>
+        <p class="mt-2 text-sm text-zinc-700"><span class="font-medium">Contains:</span> DFS, BFS, Union-Find, topological sort, Dijkstra, Bellman-Ford, Floyd-Warshall, Kruskal/Prim.</p>
+        <p class="mt-1 text-xs text-zinc-500">Recognize from: explicit graph/tree/grid, or an implicit graph (states as nodes, transitions as edges &mdash; word ladder, puzzle BFS).</p>
+      </div>
+      <div class="rounded-md border border-zinc-200 p-4">
+        <h3 class="font-medium">DP family &mdash; distinguished by state shape</h3>
+        <p class="mt-1 text-sm text-zinc-600">Optimal substructure + overlapping subproblems. The sub-pattern is determined by the shape of the state, not the recurrence style.</p>
+        <ul class="mt-2 flex flex-col gap-1 text-sm text-zinc-700">
+          <li><span class="font-medium">Linear</span> <code>dp[i]</code> &mdash; Kadane's, house robber, climbing stairs.</li>
+          <li><span class="font-medium">Two-sequence</span> <code>dp[i][j]</code> &mdash; LCS, edit distance.</li>
+          <li><span class="font-medium">Interval</span> <code>dp[i][j]</code> over range [i,j] &mdash; matrix chain multiplication, burst balloons, palindrome partitioning.</li>
+          <li><span class="font-medium">Subset</span> <code>dp[mask]</code> &mdash; bitmask DP, TSP.</li>
+          <li><span class="font-medium">Tree</span> <code>dp[node][...]</code> &mdash; tree DP via post-order DFS.</li>
+          <li><span class="font-medium">Digit</span> <code>dp[pos][tight][...]</code> &mdash; count numbers in [L, R] with property X.</li>
+        </ul>
+        <p class="mt-2 text-xs text-zinc-500">"Overlapping subproblems" is the easy part to spot &mdash; picking which of these six state shapes fits is 80% of a DP problem.</p>
+      </div>
+      <div class="rounded-md border border-zinc-200 p-4">
+        <h3 class="font-medium">Range query family</h3>
+        <p class="mt-1 text-sm text-zinc-600">Precompute or maintain an aggregate over ranges.</p>
+        <p class="mt-2 text-sm text-zinc-700"><span class="font-medium">Contains:</span> prefix sum (static, O(1) query) &sub; difference array (static range updates, its write-side dual) &sub; Fenwick/BIT (point update, range query, O(log n)) &sub; segment tree (range update + range query, most general).</p>
+        <p class="mt-1 text-xs text-zinc-500">If there are no updates, prefix sums alone are enough &mdash; don't reach for a segment tree.</p>
+      </div>
+      <div class="rounded-md border border-zinc-200 p-4">
+        <h3 class="font-medium">Stack/deque invariant family</h3>
+        <p class="mt-1 text-sm text-zinc-600">Maintain a monotonic sequence to answer "nearest element with property X" in amortized O(1) per element.</p>
+        <p class="mt-2 text-sm text-zinc-700"><span class="font-medium">Contains:</span> monotonic stack (next/previous greater or smaller), monotonic deque (sliding window max/min &mdash; same invariant, but elements also fall off the front as the window slides).</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="howto" class="rounded-lg border border-zinc-200 bg-white p-5 scroll-mt-4">
+    <h2 class="text-lg font-semibold">How to simplify an unfamiliar problem</h2>
+    <ol class="mt-3 flex flex-col gap-3 text-sm text-zinc-700 list-decimal list-outside pl-5">
+      <li><strong class="text-zinc-900">Strip the flavor text.</strong> Identify: input shape (array / string / tree / graph / matrix / stream), constraints (n, value ranges, query count), question type (count / min / max / exists / construct / enumerate).</li>
+      <li><strong class="text-zinc-900">Read the constraints before designing anything.</strong> They give the target complexity (see above) and eliminate most candidate families immediately &mdash; n &le; 20 is very likely bitmask DP or backtracking, not a linear scan.</li>
+      <li><strong class="text-zinc-900">Classify the input relationship.</strong> Is position/order load-bearing (array, string &rarr; window/pointer or sequence DP), or is it a relationship structure (graph, tree &rarr; traversal family)?</li>
+      <li><strong class="text-zinc-900">Check for monotonicity.</strong> If "can we achieve X?" flips false&rarr;true exactly once as a parameter increases, that parameter is binary-searchable &mdash; binary search on the answer turns an optimization problem into an isolated decision check.</li>
+      <li><strong class="text-zinc-900">Check for overlapping subproblems.</strong> If brute force recomputes the same <code>(remaining_input, choices_so_far)</code> state repeatedly, it's DP &mdash; next, pick the state shape.</li>
+      <li><strong class="text-zinc-900">Look for a composition, not a single primitive.</strong> Most "creative" problems chain two ordinary patterns: sliding window + hashmap frequency count, binary search on the answer + greedy feasibility check, DFS + memoization (= tree DP), sort + two pointers.</li>
+      <li><strong class="text-zinc-900">When stuck, measure the gap.</strong> Write the brute-force complexity and the complexity the constraints demand. The ratio tells you what to add: brute O(n^2) but n = 10^5 demands O(n log n) &rarr; you're missing a sort, a hashmap, or a binary search that removes a factor of n.</li>
+    </ol>
+    <p class="mt-4 text-xs text-zinc-500">Further reading: <a class="underline hover:text-zinc-700" href="https://algo.monster/" target="_blank" rel="noreferrer">AlgoMonster's 48-pattern curriculum</a> covers the same idea at interview scale &mdash; DFS/BFS, two pointers, and sliding window alone reportedly cover a large share of FAANG-style interview problems. Use it as a cross-check, not a replacement for the supersets above.</p>
+  </section>
+
+  <section id="glossary" class="rounded-lg border border-zinc-200 bg-white p-5 scroll-mt-4">
+    <h2 class="text-lg font-semibold">Glossary</h2>
+    <dl class="mt-3 grid gap-4 sm:grid-cols-2">
+      <div><dt class="font-medium text-zinc-900">Big-O / Big-Theta / Big-Omega</dt><dd class="mt-1 text-sm text-zinc-600">O = upper bound, &Omega; = lower bound, &Theta; = both. Interview usage almost always means &Theta; even when people say "O."</dd></div>
+      <div><dt class="font-medium text-zinc-900">Amortized complexity</dt><dd class="mt-1 text-sm text-zinc-600">Average cost per operation over a worst-case sequence. Dynamic array append: O(1) amortized, O(n) worst case on the resizing call.</dd></div>
+      <div><dt class="font-medium text-zinc-900">Expected / average-case</dt><dd class="mt-1 text-sm text-zinc-600">Average over random inputs or randomized choices, distinct from worst-case. Hash map lookup: O(1) expected, O(n) worst case under adversarial collisions.</dd></div>
+      <div><dt class="font-medium text-zinc-900">In-place vs auxiliary space</dt><dd class="mt-1 text-sm text-zinc-600">In-place uses O(1) extra memory beyond the input; auxiliary space is memory beyond the output.</dd></div>
+      <div><dt class="font-medium text-zinc-900">Stable sort</dt><dd class="mt-1 text-sm text-zinc-600">Equal elements keep relative input order (merge sort is stable; typical quicksort/heapsort are not).</dd></div>
+      <div><dt class="font-medium text-zinc-900">Memoization vs tabulation</dt><dd class="mt-1 text-sm text-zinc-600">Memoization: top-down recursion + cache. Tabulation: bottom-up, filling a table in dependency order. Same complexity, different control flow.</dd></div>
+      <div><dt class="font-medium text-zinc-900">Greedy</dt><dd class="mt-1 text-sm text-zinc-600">Commit to the locally-best choice, never revisit. Correct only when local optimality provably implies global optimality; otherwise DP is the safe fallback.</dd></div>
+      <div><dt class="font-medium text-zinc-900">Divide and conquer</dt><dd class="mt-1 text-sm text-zinc-600">Split into independent subproblems, solve recursively, combine. Unlike DP, subproblems don't overlap.</dd></div>
+      <div><dt class="font-medium text-zinc-900">Meet in the middle</dt><dd class="mt-1 text-sm text-zinc-600">Split a 2^n search space into two 2^(n/2) halves, solve independently, combine &mdash; typically for n up to ~40.</dd></div>
+      <div><dt class="font-medium text-zinc-900">Monotonic stack / deque</dt><dd class="mt-1 text-sm text-zinc-600">Kept strictly increasing/decreasing by popping violators before pushing; answers "nearest element satisfying X" in amortized O(1).</dd></div>
+      <div><dt class="font-medium text-zinc-900">Prefix sum / difference array</dt><dd class="mt-1 text-sm text-zinc-600">Prefix sum: O(1) range-sum query on a static array. Difference array: its dual, O(1) range updates.</dd></div>
+      <div><dt class="font-medium text-zinc-900">Fenwick tree (BIT)</dt><dd class="mt-1 text-sm text-zinc-600">Point update + prefix/range query in O(log n), small constant, simpler than a segment tree.</dd></div>
+      <div><dt class="font-medium text-zinc-900">Segment tree</dt><dd class="mt-1 text-sm text-zinc-600">Range update + range query for any associative op in O(log n); more general than a Fenwick tree, bigger constant.</dd></div>
+      <div><dt class="font-medium text-zinc-900">Union-Find (DSU)</dt><dd class="mt-1 text-sm text-zinc-600">Disjoint-set partition with near-O(1) union/find (amortized O(&alpha;(n))) using path compression + union by rank.</dd></div>
+      <div><dt class="font-medium text-zinc-900">Topological sort</dt><dd class="mt-1 text-sm text-zinc-600">Linear ordering of a DAG's nodes so every edge points forward; undefined (and detectable) on a cycle.</dd></div>
+      <div><dt class="font-medium text-zinc-900">Backtracking</dt><dd class="mt-1 text-sm text-zinc-600">DFS over a decision tree that undoes a choice on a dead end, optionally pruning to avoid full exponential exploration.</dd></div>
+      <div><dt class="font-medium text-zinc-900">Bitmask</dt><dd class="mt-1 text-sm text-zinc-600">Represent a subset of up to ~20&ndash;24 items as an integer, one bit per item &mdash; the state representation for bitmask DP.</dd></div>
+      <div><dt class="font-medium text-zinc-900">Binary search on the answer</dt><dd class="mt-1 text-sm text-zinc-600">Binary search over possible answers using a feasibility check per candidate; valid when feasibility is monotonic in the answer.</dd></div>
+      <div><dt class="font-medium text-zinc-900">Heap / priority queue</dt><dd class="mt-1 text-sm text-zinc-600">O(log n) insert/extract-min-max, O(1) peek. Standard structure for top-k, k-way merge, Dijkstra's frontier.</dd></div>
+      <div><dt class="font-medium text-zinc-900">Trie (prefix tree)</dt><dd class="mt-1 text-sm text-zinc-600">Tree where each root-to-node path spells a prefix; O(length) prefix queries for autocomplete, word search, prefix DP.</dd></div>
+      <div><dt class="font-medium text-zinc-900">Kadane's algorithm</dt><dd class="mt-1 text-sm text-zinc-600">O(n) DP for max-subarray-sum: at each index, extend the running subarray or restart, whichever is larger.</dd></div>
+      <div><dt class="font-medium text-zinc-900">Floyd's cycle detection</dt><dd class="mt-1 text-sm text-zinc-600">Tortoise/hare pointers at different speeds meet iff there's a cycle; further arithmetic locates its start in O(n) time, O(1) space.</dd></div>
+      <div><dt class="font-medium text-zinc-900">Dijkstra vs Bellman-Ford vs Floyd-Warshall</dt><dd class="mt-1 text-sm text-zinc-600">Dijkstra: single-source, non-negative weights, O((V+E) log V). Bellman-Ford: single-source, handles negative weights, O(V&middot;E). Floyd-Warshall: all-pairs, O(V^3), only for small V.</dd></div>
+      <div><dt class="font-medium text-zinc-900">NP-hard (informal)</dt><dd class="mt-1 text-sm text-zinc-600">No known polynomial algorithm. If a problem is a disguised TSP/subset-sum/knapsack-decision/graph-coloring, expect exponential-but-bounded n, a pseudo-polynomial DP, or approximation.</dd></div>
+    </dl>
+  </section>
+</div>
+{{end}}
